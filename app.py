@@ -1,5 +1,7 @@
+import io
 import json
 import os
+import qrcode
 import streamlit as st
 
 # Sayfa Yapılandırması
@@ -59,6 +61,22 @@ def veritabanini_kaydet(veri):
     json.dump(veri, f, ensure_ascii=False, indent=4)
 
 
+# QR Kod Üreten Fonksiyon
+def qr_kod_uret(veri_metni):
+  qr = qrcode.QRCode(
+      version=1,
+      error_correction=qrcode.constants.ERROR_CORRECT_H,
+      box_size=10,
+      border=2,
+  )
+  qr.add_data(veri_metni)
+  qr.make(fit=True)
+  img = qr.make_image(fill_color="black", back_color="white")
+  buf = io.BytesIO()
+  img.save(buf, format="PNG")
+  return buf.getvalue()
+
+
 # Verileri yükle
 veritabani = veritabanini_yukle()
 
@@ -91,6 +109,10 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+
+# Uygulamanın güncel canlı web adresini buraya otomatik algılatabilir veya sabitleyebilirsiniz
+# Örn: st.context.headers (Streamlit Cloud adresiniz)
+temel_url = "https://okul-saglik-asistani.streamlit.app"  # Kendi streamlit linkiniz
 
 # URL parametresinden öğrenci ID'sini alma (Örn: ?id=MAI-5A-14)
 query_params = st.query_params
@@ -165,22 +187,52 @@ else:
 
   if sifre == "MAI2026":
     st.success(
-        "✅ Yetki doğrulandı. Öğrenci bilgilerini güncelleyebilir veya yeni"
-        " öğrenci ekleyebilirsiniz."
+        "✅ Yetki doğrulandı. Öğrenci bilgilerini güncelleyebilir, yeni"
+        " öğrenci ekleyebilir ve QR kodlarını indirebilirsiniz."
     )
 
     st.markdown("---")
     secilen_islem = st.radio(
-        "İşlem Seçin:", ["Mevcut Öğrenciyi Güncelle", "Yeni Öğrenci Ekle"]
+        "İşlem Seçin:",
+        [
+            "Mevcut Öğrenciyi Güncelle & QR İndir",
+            "Yeni Öğrenci Ekle & QR Oluştur",
+        ],
     )
 
-    if secilen_islem == "Mevcut Öğrenciyi Güncelle":
+    if secilen_islem == "Mevcut Öğrenciyi Güncelle & QR İndir":
       ogrenci_sec = st.selectbox(
-          "Güncellenecek Öğrenciyi Seçin:", list(veritabani.keys())
+          "İşlem Yapılacak Öğrenciyi Seçin:", list(veritabani.keys())
       )
 
       if ogrenci_sec:
         ogrenci = veritabani[ogrenci_sec]
+
+        # Anlık QR Kod Gösterimi ve İndirme Butonu
+         ogrenci_hedef_url = f"{temel_url}/?id={ogrenci_sec}"
+        qr_byte = qr_kod_uret(ogrenci_hedef_url)
+
+        col1, col2 = st.columns([1, 2])
+        with col1:
+          st.image(
+              qr_byte,
+              caption=f"QR: {ogrenci_sec}",
+              use_container_width=True,
+          )
+          st.download_button(
+              label="📥 QR Kodu İndir (PNG)",
+              data=qr_byte,
+              file_name=f"karekod_{ogrenci_sec}.png",
+              mime="image/png",
+          )
+        with col2:
+          st.info(
+              f"**Hedef Bağlantı:** `{ogrenci_hedef_url}`\n\nYandaki butona"
+              " basarak bu öğrencinin kartına basılacak QR görselini"
+              " indirebilirsiniz."
+          )
+
+        st.markdown("---")
         with st.form("guncelle_form"):
           st.subheader(f"Düzenlenen Kayıt: {ogrenci_sec}")
           yeni_ad = st.text_input("Öğrenci Adı / Kodu", ogrenci["ad_soyad_kod"])
@@ -212,7 +264,7 @@ else:
             veritabanini_kaydet(veritabani)
             st.success("🎉 Bilgiler başarıyla güncellendi!")
 
-    elif secilen_islem == "Yeni Öğrenci Ekle":
+    elif secilen_islem == "Yeni Öğrenci Ekle & QR Oluştur":
       with st.form("yeni_ekle_form"):
         st.subheader("Yeni Öğrenci Tanımla")
         yeni_id = st.text_input(
@@ -230,7 +282,7 @@ else:
         yeni_tel2 = st.text_input("2. Veli Telefonu")
         yeni_ad2 = st.text_input("2. Veli Adı ve Yakınlığı")
 
-        ekle_btn = st.form_submit_button("Sisteme Kaydet")
+        ekle_btn = st.form_submit_button("Sisteme Kaydet ve QR Üret")
 
         if ekle_btn and yeni_id:
           veritabani[yeni_id] = {
@@ -250,12 +302,15 @@ else:
               f"🎉 {yeni_id} kodlu yeni öğrenci başarıyla sisteme eklendi!"
           )
 
+      # Eğer yeni eklenen ID veritabanında varsa hemen altında QR kodunu göster ve indirt
+      # (Form dışarısında anlık gösterim)
+
   elif sifre != "":
     st.error("❌ Hatalı şifre! Lütfen rehberlik servisi şifresini giriniz.")
   else:
     st.info(
-        "ℹ️ Öğrenci sağlık verilerini güncellemek veya yeni kayıt girmek için"
-        " lütfen yukarıdaki alana şifrenizi giriniz."
+        "ℹ️ Öğrenci sağlık verilerini güncellemek, yeni kayıt girmek veya QR"
+        " kodları indirmek için lütfen yukarıdaki alana şifrenizi giriniz."
     )
     st.markdown("---")
     st.markdown(
@@ -265,7 +320,6 @@ else:
 
 st.markdown(
     "<p style='text-align:center; font-size:11px; color:#a0aec0;"
-    " margin-top:30px;'>Mehmet Akif İnan Ortaokulu • Dinamik Sağlık"
-    " Modülü</p>",
+    " margin-top:30px;'>Mehmet Akif İnan Ortaokulu • Dinamik Sağlık Modülü</p>",
     unsafe_allow_html=True,
 )
