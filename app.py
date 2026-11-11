@@ -146,13 +146,16 @@ else:
       unsafe_allow_html=True,
   )
 
-  # Şifre Koruması (Mehmet Akif İnan Ortaokulu için yetki güvenliği)
+  # Şifre Koruması
   sifre = st.text_input(
       "Yönetici Şifresini Giriniz:", type="password", placeholder="Şifre..."
   )
 
-  if sifre == "MAI2026":  # Belirleyeceğiniz okul şifresi
-    st.success("✅ Yetki doğrulandı. Öğrenci bilgilerini güncelleyebilir veya yeni öğrenci ekleyebilirsiniz.")
+  if sifre == "MAI2026":
+    st.success(
+        "✅ Yetki doğrulandı. Öğrenci bilgilerini güncelleyebilir veya yeni"
+        " öğrenci ekleyebilirsiniz."
+    )
 
     st.markdown("---")
     secilen_islem = st.radio(
@@ -168,7 +171,7 @@ else:
         ogrenci = veritabani[ogrenci_sec]
         with st.form("guncelle_form"):
           st.subheader(f"Düzenlenen Kayıt: {ogrenci_sec}")
-           yeni_ad = st.text_input("Öğrenci Adı / Kodu", ogrenci["ad_soyad_kod"])
+          yeni_ad = st.text_input("Öğrenci Adı / Kodu", ogrenci["ad_soyad_kod"])
           yeni_hastalik = st.text_input("Sağlık Durumu", ogrenci["hastalik"])
           yeni_kan = st.text_input("Kan Grubu", ogrenci["kan_grubu"])
           yeni_tel1 = st.text_input("1. Veli Tel", ogrenci["veli_tel_1"])
@@ -232,9 +235,7 @@ else:
         "ℹ️ Öğrenci sağlık verilerini güncellemek veya yeni kayıt girmek için"
         " lütfen yukarıdaki alana şifrenizi giriniz."
     )
-    st.markdown(
-        "---"
-    )
+    st.markdown("---")
     st.markdown(
         "*Not: Eğer bir öğrencinin karekodunu okuttuysanız doğrudan acil"
         " durum ekranı açılacaktır.*"
