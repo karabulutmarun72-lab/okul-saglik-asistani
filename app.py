@@ -110,9 +110,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Uygulamanın güncel canlı web adresini buraya otomatik algılatabilir veya sabitleyebilirsiniz
-# Örn: st.context.headers (Streamlit Cloud adresiniz)
-temel_url = "https://okul-saglik-asistani.streamlit.app"  # Kendi streamlit linkiniz
+# Canlı web adresiniz (Streamlit Cloud linkiniz)
+temel_url = "https://okul-saglik-asistani.streamlit.app"
 
 # URL parametresinden öğrenci ID'sini alma (Örn: ?id=MAI-5A-14)
 query_params = st.query_params
@@ -209,7 +208,7 @@ else:
         ogrenci = veritabani[ogrenci_sec]
 
         # Anlık QR Kod Gösterimi ve İndirme Butonu
-         ogrenci_hedef_url = f"{temel_url}/?id={ogrenci_sec}"
+        ogrenci_hedef_url = f"{temel_url}/?id={ogrenci_sec}"
         qr_byte = qr_kod_uret(ogrenci_hedef_url)
 
         col1, col2 = st.columns([1, 2])
@@ -301,9 +300,6 @@ else:
           st.success(
               f"🎉 {yeni_id} kodlu yeni öğrenci başarıyla sisteme eklendi!"
           )
-
-      # Eğer yeni eklenen ID veritabanında varsa hemen altında QR kodunu göster ve indirt
-      # (Form dışarısında anlık gösterim)
 
   elif sifre != "":
     st.error("❌ Hatalı şifre! Lütfen rehberlik servisi şifresini giriniz.")
