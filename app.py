@@ -13,6 +13,18 @@ st.set_page_config(
 # Dosya tabanlı veritabanı yolu
 DB_FILE = "veritabani.json"
 
+# Standart Kan Grubu Listesi
+KAN_GRUPLARI = [
+    "0 Rh(-)",
+    "0 Rh(+)",
+    "A Rh(-)",
+    "A Rh(+)",
+    "B Rh(-)",
+    "B Rh(+)",
+    "AB Rh(-)",
+    "AB Rh(+)",
+]
+
 
 # Varsayılan veritabanı oluşturma (Eğer yoksa)
 def veritabanini_yukle():
@@ -130,119 +142,3 @@ if ogrenci_id and ogrenci_id in veritabani:
   st.markdown(
       """<a href="tel:112" class="call-btn-112">🚨 112 ACİL ÇAĞRI MERKEZİNİ BAĞLAN</a>""",
       unsafe_allow_html=True,
-  )
-
-  st.markdown("---")
-  st.markdown(
-      f"""<div style="background-color:#edf2f7; padding:10px; border-radius:6px; font-size:13px; color:#4a5568;"><b>💊 İlaç / Malzeme Lokasyonu:</b> {aktif_ogrenci['lokasyon']}</div>""",
-      unsafe_allow_html=True,
-  )
-
-# --- 2. SENARYO: REHBER ÖĞRETMEN YÖNETİM VE GÜNCELLEME PANELİ ---
-else:
-  st.markdown(
-      '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE GÜNCELLEME'
-      ' PANELİ</div>',
-      unsafe_allow_html=True,
-  )
-
-  # Şifre Koruması
-  sifre = st.text_input(
-      "Yönetici Şifresini Giriniz:", type="password", placeholder="Şifre..."
-  )
-
-  if sifre == "MAI2026":
-    st.success(
-        "✅ Yetki doğrulandı. Öğrenci bilgilerini güncelleyebilir veya yeni"
-        " öğrenci ekleyebilirsiniz."
-    )
-
-    st.markdown("---")
-    secilen_islem = st.radio(
-        "İşlem Seçin:", ["Mevcut Öğrenciyi Güncelle", "Yeni Öğrenci Ekle"]
-    )
-
-    if secilen_islem == "Mevcut Öğrenciyi Güncelle":
-      ogrenci_sec = st.selectbox(
-          "Güncellenecek Öğrenciyi Seçin:", list(veritabani.keys())
-      )
-
-      if ogrenci_sec:
-        ogrenci = veritabani[ogrenci_sec]
-        with st.form("guncelle_form"):
-          st.subheader(f"Düzenlenen Kayıt: {ogrenci_sec}")
-          yeni_ad = st.text_input("Öğrenci Adı / Kodu", ogrenci["ad_soyad_kod"])
-          yeni_hastalik = st.text_input("Sağlık Durumu", ogrenci["hastalik"])
-          yeni_kan = st.text_input("Kan Grubu", ogrenci["kan_grubu"])
-          yeni_tel1 = st.text_input("1. Veli Tel", ogrenci["veli_tel_1"])
-          yeni_tel2 = st.text_input("2. Veli Tel", ogrenci["veli_tel_2"])
-          yeni_lokasyon = st.text_input("İlaç Lokasyonu", ogrenci["lokasyon"])
-
-          kaydet_btn = st.form_submit_button("Bilgileri Güncelle")
-
-          if kaydet_btn:
-            veritabani[ogrenci_sec]["ad_soyad_kod"] = yeni_ad
-            veritabani[ogrenci_sec]["hastalik"] = yeni_hastalik
-            veritabani[ogrenci_sec]["kan_grubu"] = yeni_kan
-            veritabani[ogrenci_sec]["veli_tel_1"] = yeni_tel1
-            veritabani[ogrenci_sec]["veli_tel_2"] = yeni_tel2
-            veritabani[ogrenci_sec]["lokasyon"] = yeni_lokasyon
-            veritabanini_kaydet(veritabani)
-            st.success("🎉 Bilgiler başarıyla güncellendi!")
-
-    elif secilen_islem == "Yeni Öğrenci Ekle":
-      with st.form("yeni_ekle_form"):
-        st.subheader("Yeni Öğrenci Tanımla")
-        yeni_id = st.text_input(
-            "Özgün QR ID Kodu (Örn: MAI-5C-05)", placeholder="MAI-..."
-        )
-        yeni_ad = st.text_input("Öğrenci Kodu / Adı (Örn: Öğrenci #05 (5/C))")
-        yeni_hastalik = st.text_input("Sağlık Durumu / Rahatsızlık")
-        yeni_kan = st.text_input("Kan Grubu")
-        yeni_protokol = st.text_area(
-            "Acil Müdahale Protokolü (HTML destekli)"
-        )
-        yeni_lokasyon = st.text_input("İlaç / Malzeme Nerede?")
-        yeni_tel1 = st.text_input("1. Veli Telefonu")
-        yeni_ad1 = st.text_input("1. Veli Adı ve Yakınlığı")
-        yeni_tel2 = st.text_input("2. Veli Telefonu")
-        yeni_ad2 = st.text_input("2. Veli Adı ve Yakınlığı")
-
-        ekle_btn = st.form_submit_button("Sisteme Kaydet")
-
-        if ekle_btn and yeni_id:
-          veritabani[yeni_id] = {
-              "ad_soyad_kod": yeni_ad,
-              "hastalik": yeni_hastalik,
-              "kategori_renk": "#e53e3e",
-              "kan_grubu": yeni_kan,
-              "protokol": yeni_protokol,
-              "lokasyon": yeni_lokasyon,
-              "veli_tel_1": yeni_tel1,
-              "veli_ad_1": yeni_ad1,
-              "veli_tel_2": yeni_tel2,
-              "veli_ad_2": yeni_ad2,
-          }
-          veritabanini_kaydet(veritabani)
-          st.success(
-              f"🎉 {yeni_id} kodlu yeni öğrenci başarıyla sisteme eklendi!"
-          )
-
-  elif sifre != "":
-    st.error("❌ Hatalı şifre! Lütfen rehberlik servisi şifresini giriniz.")
-  else:
-    st.info(
-        "ℹ️ Öğrenci sağlık verilerini güncellemek veya yeni kayıt girmek için"
-        " lütfen yukarıdaki alana şifrenizi giriniz."
-    )
-    st.markdown("---")
-    st.markdown(
-        "*Not: Eğer bir öğrencinin karekodunu okuttuysanız doğrudan acil"
-        " durum ekranı açılacaktır.*"
-    )
-
-st.markdown(
-    "<p style='text-align:center; font-size:11px; color:#a0aec0;"
-    " margin-top:30px;'>Mehmet Akif İnan Ortaokulu • Dinamik Sağlık Modülü</p>",
-    unsafe_allow_html=True,
-)
