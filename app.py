@@ -265,4 +265,7 @@ else:
 
 st.markdown(
     "<p style='text-align:center; font-size:11px; color:#a0aec0;"
-    " margin-top:30px;'>Mehmet Akif İnan Ortaokulu • Dinamik Sağlık Mod
+    " margin-top:30px;'>Mehmet Akif İnan Ortaokulu • Dinamik Sağlık"
+    " Modülü</p>",
+    unsafe_allow_html=True,
+)
