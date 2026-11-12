@@ -137,33 +137,123 @@ if ogrenci_id and ogrenci_id in veritabani:
   tel2 = aktif_ogrenci["veli_tel_2"]
   ad2 = aktif_ogrenci["veli_ad_2"]
 
-  st.markdown(
-      f"""
-    <div class="card-box" style="border-left-color: {kategori_renk};">
-        <h3 style="margin-top:0; color:#2d3748; font-size:18px;">🆔 Kayıt: <b>{ogrenci_kod}</b></h3>
-        <p style="margin:4px 0; font-size:16px;"><b>⚠️ Sağlık Durumu:</b> <span style="color: {kategori_renk}; font-weight: bold;">{hastalik}</span></p>
-        <p style="margin:4px 0; color:#4a5568;"><b>Kan Grubu:</b> {kan_grubu}</p>
-    </div>
-    """,
-      unsafe_allow_html=True,
+  card_html = (
+      f"<div class='card-box' style='border-left-color: {kategori_renk};'>"
+      f"<h3 style='margin-top:0; color:#2d3748; font-size:18px;'>🆔 Kayıt:"
+      f" <b>{ogrenci_kod}</b></h3>"
+      f"<p style='margin:4px 0; font-size:16px;'><b>⚠️ Sağlık Durumu:</b>"
+      f" <span style='color: {kategori_renk}; font-weight:"
+      f" bold;'>{hastalik}</span></p>"
+      f"<p style='margin:4px 0; color:#4a5568;'><b>Kan Grubu:</b>"
+      f" {kan_grubu}</p></div>"
   )
+  st.markdown(card_html, unsafe_allow_html=True)
 
   with st.expander(
       "🚨 KRİTİK İLK MÜDAHALE REHBERİ (Tıkla / Aç)", expanded=True
   ):
-    st.markdown(
-        f"""
-        <div style="background-color:#fff5f5; border-left: 6px solid {kategori_renk}; padding: 15px; border-radius: 8px;">
-            {protokol}
-        </div>
-        """,
-        unsafe_allow_html=True,
+    proto_html = (
+        f"<div style='background-color:#fff5f5; border-left: 6px solid"
+        f" {kategori_renk}; padding: 15px; border-radius: 8px;'>"
+        f"{protokol}</div>"
     )
+    st.markdown(proto_html, unsafe_allow_html=True)
 
   st.markdown("### 📞 Hızlı İletişim Hatları")
+  btn1_html = (
+      f"<a href='tel:{tel1}' class='call-btn-1'>📞 {ad1} Ara ({tel1})</a>"
+  )
+  st.markdown(btn1_html, unsafe_allow_html=True)
+
+  btn2_html = (
+      f"<a href='tel:{tel2}' class='call-btn-1'>📞 {ad2} Ara ({tel2})</a>"
+  )
+  st.markdown(btn2_html, unsafe_allow_html=True)
+
+  st.markdown("")
   st.markdown(
-      f"""<a href="tel:{tel1}" class="call-btn-1">📞 {ad1} Ara ({tel1})</a>""",
+      "<a href='tel:112' class='call-btn-112'>🚨 112 ACİL ÇAĞRI MERKEZİNİ"
+      " BAĞLAN</a>",
       unsafe_allow_html=True,
   )
+
+  st.markdown("---")
+  loc_html = (
+      "<div style='background-color:#edf2f7; padding:10px; border-radius:6px;"
+      f" font-size:13px; color:#4a5568;'><b>💊 İlaç / Malzeme Lokasyonu:</b>"
+      f" {lokasyon}</div>"
+  )
+  st.markdown(loc_html, unsafe_allow_html=True)
+
+# --- 2. SENARYO: REHBER ÖĞRETMEN YÖNETİM VE GÜNCELLEME PANELİ ---
+else:
   st.markdown(
-      f"""<a href="tel:{tel2}" class="call-btn-1">📞 {ad2} Ara ({tel2})</a>
+      '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE GÜNCELLEME'
+      " PANELİ</div>",
+      unsafe_allow_html=True,
+  )
+
+  sifre = st.text_input(
+      "Yönetici Şifresini Giriniz:", type="password", placeholder="Şifre..."
+  )
+
+  if sifre == "MAI2026":
+    st.success(
+        "✅ Yetki doğrulandı. Öğrenci bilgilerini güncelleyebilir, yeni"
+        " öğrenci ekleyebilir ve QR kodlarını indirebilirsiniz."
+    )
+
+    st.markdown("---")
+    secilen_islem = st.radio(
+        "İşlem Seçin:",
+        [
+            "Mevcut Öğrenciyi Güncelle & QR İndir",
+            "Yeni Öğrenci Ekle & QR Oluştur",
+        ],
+    )
+
+    if secilen_islem == "Mevcut Öğrenciyi Güncelle & QR İndir":
+      ogrenci_sec = st.selectbox(
+          "İşlem Yapılacak Öğrenciyi Seçin:", list(veritabani.keys())
+      )
+
+      if ogrenci_sec:
+        ogrenci = veritabani[ogrenci_sec]
+
+        ogrenci_hedef_url = f"{temel_url}/?id={ogrenci_sec}"
+        qr_byte = qr_kod_uret(ogrenci_hedef_url)
+
+        col1, col2 = st.columns([1, 2])
+        with col1:
+          st.image(
+              qr_byte,
+              caption=f"QR: {ogrenci_sec}",
+              use_container_width=True,
+          )
+          st.download_button(
+              label="📥 QR Kodu İndir (PNG)",
+              data=qr_byte,
+              file_name=f"karekod_{ogrenci_sec}.png",
+              mime="image/png",
+          )
+        with col2:
+          st.info(
+              f"**Hedef Bağlantı:** `{ogrenci_hedef_url}`\n\nYandaki butona"
+              " basarak bu öğrencinin kartına basılacak QR görselini"
+              " indirebilirsiniz."
+          )
+
+        st.markdown("---")
+        with st.form("guncelle_form"):
+          st.subheader(f"Düzenlenen Kayıt: {ogrenci_sec}")
+          yeni_ad = st.text_input("Öğrenci Adı / Kodu", ogrenci["ad_soyad_kod"])
+          yeni_hastalik = st.text_input("Sağlık Durumu", ogrenci["hastalik"])
+
+          mevcut_kan = (
+              ogrenci["kan_grubu"]
+              if ogrenci["kan_grubu"] in KAN_GRUPLARI
+              else KAN_GRUPLARI[0]
+          )
+          kan_index = KAN_GRUPLARI.index(mevcut_kan)
+          yeni_kan = st.selectbox(
+              "Kan Grubu", KAN_GRUPLARI, index=kan_
