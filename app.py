@@ -166,4 +166,11 @@ if ogrenci_id and ogrenci_id in veritabani:
 
   st.markdown("---")
   st.markdown(
-      f
+      f"""<div style="background-color:#edf2f7; padding:10px; border-radius:6px; font-size:13px; color:#4a5568;"><b>💊 İlaç / Malzeme Lokasyonu:</b> {aktif_ogrenci['lokasyon']}</div>""",
+      unsafe_allow_html=True,
+  )
+
+# --- 2. SENARYO: REHBER ÖĞRETMEN YÖNETİM VE GÜNCELLEME PANELİ ---
+else:
+  st.markdown(
+      '<div class="
