@@ -4,7 +4,7 @@ import os
 import qrcode
 import streamlit as st
 
-# Sayfa Yapılandırması
+# Sayfa Yapılandırması (Mobil öncelikli görünüm)
 st.set_page_config(
     page_title="Okul Sağlık ve Acil Müdahale Asistanı",
     page_icon="🩺",
@@ -44,7 +44,7 @@ def veritabanini_yukle():
             "veli_ad_1": "Ahmet Bey (Baba)",
             "veli_tel_2": "+905429876543",
             "veli_ad_2": "Fatma Hanım (Anne)",
-            "veli_sifre": "1234",  # Veli şifresi
+            "veli_sifre": "1234",
         }
     }
     with open(DB_FILE, "w", encoding="utf-8") as f:
@@ -76,30 +76,45 @@ def qr_kod_uret(veri_metni):
 
 veritabani = veritabanini_yukle()
 
+# --- MOBİL APK UYUMLU ÖZEL CSS TASARIMI ---
 st.markdown(
     """
     <style>
-    .stApp { background-color: #f7fafc; }
+    /* Genel Arka Plan ve Akış */
+    .stApp { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    
+    /* Mobil Üst Başlık (App Bar Görünümü) */
     .mobile-header {
-        background: linear-gradient(135deg, #2b6cb0, #2c5282);
-        color: white; padding: 20px; border-radius: 12px;
-        text-align: center; font-weight: bold; font-size: 19px; margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+        color: white; padding: 22px 15px; border-radius: 0 0 18px 18px;
+        text-align: center; font-weight: 700; font-size: 20px; margin: -60px -20px 20px -20px;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
     }
+    
+    /* İçerik Kartları */
     .card-box {
-        background-color: #ffffff; padding: 18px; border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 6px solid #3182ce;
+        background-color: #ffffff; padding: 18px; border-radius: 14px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.06); margin-bottom: 15px; border-left: 6px solid #3b82f6;
     }
+    
+    /* Dokunmatik Dostu Arama Butonları */
     .call-btn-1 {
-        background-color: #3182ce; color: white; padding: 14px; border-radius: 10px;
-        text-align: center; font-weight: bold; font-size: 16px; display: block;
-        text-decoration: none; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(49,130,206,0.3);
+        background-color: #2563eb; color: white !important; padding: 15px; border-radius: 12px;
+        text-align: center; font-weight: 600; font-size: 16px; display: block;
+        text-decoration: none; margin-bottom: 12px; box-shadow: 0 3px 6px rgba(37, 99, 235, 0.3);
     }
+    .call-btn-1:active { background-color: #1d4ed8; }
+    
+    /* 112 Acil Butonu (Öne Çıkan) */
     .call-btn-112 {
-        background-color: #e53e3e; color: white; padding: 16px; border-radius: 10px;
-        text-align: center; font-weight: bold; font-size: 18px; display: block;
-        text-decoration: none; box-shadow: 0 4px 6px rgba(229,62,62,0.4);
+        background-color: #dc2626; color: white !important; padding: 16px; border-radius: 12px;
+        text-align: center; font-weight: 700; font-size: 18px; display: block;
+        text-decoration: none; box-shadow: 0 4px 10px rgba(220, 38, 38, 0.4);
     }
+    .call-btn-112:active { background-color: #b91c1c; }
+    
+    /* Mobil Form Elemanları ve Boşluklar */
+    .stButton button { width: 100%; border-radius: 10px; font-weight: 600; padding: 10px; }
     </style>
 """,
     unsafe_allow_html=True,
@@ -110,13 +125,12 @@ temel_url = "https://okul-saglik-asistani-spuk5zx9pxaeqiumqtcra9.streamlit.app"
 query_params = st.query_params
 ogrenci_id = query_params.get("id", None)
 
-# --- 1. SENARYO: QR KOD OKUTULDUĞUNDA ACİL DURUM EKRANI ---
+# --- 1. SENARYO: QR KOD OKUTULDUĞUNDA ACİL DURUM EKRANI (MOBİL Görünüm) ---
 if ogrenci_id and ogrenci_id in veritabani:
   aktif_ogrenci = veritabani[ogrenci_id]
 
   st.markdown(
-      '<div class="mobile-header">🚨 ACİL SAĞLIK & İLK MÜDAHALE'
-      ' EKRANI</div>',
+      '<div class="mobile-header">🚨 ACİL SAĞLIK & İLK MÜDAHALE</div>',
       unsafe_allow_html=True,
   )
 
@@ -134,27 +148,31 @@ if ogrenci_id and ogrenci_id in veritabani:
 
   card_html = (
       f"<div class='card-box' style='border-left-color: {kategori_renk};'>"
-      f"<h3 style='margin-top:0; color:#2d3748; font-size:18px;'>🆔 Kayıt:"
+      f"<h3 style='margin-top:0; color:#1e293b; font-size:18px;'>🆔 Kayıt:"
       f" <b>{ogrenci_kod}</b></h3>"
-      f"<p style='margin:4px 0; font-size:16px;'><b>⚠️ Sağlık Durumu:</b>"
+      f"<p style='margin:6px 0; font-size:16px;'><b>⚠️ Sağlık Durumu:</b>"
       f" <span style='color: {kategori_renk}; font-weight:"
-      f" bold;'>{hastalik}</span></p>"
-      f"<p style='margin:4px 0; color:#4a5568;'><b>Kan Grubu:</b>"
+      f" 700;'>{hastalik}</span></p>"
+      f"<p style='margin:4px 0; color:#475569;'><b>Kan Grubu:</b>"
       f" {kan_grubu}</p></div>"
   )
   st.markdown(card_html, unsafe_allow_html=True)
 
   with st.expander(
-      "🚨 KRİTİK İLK MÜDAHALE REHBERİ (Tıkla / Aç)", expanded=True
+      "🚨 KRİTİK İLK MÜDAHALE REHBERİ (Dokun / Aç)", expanded=True
   ):
     proto_html = (
-        f"<div style='background-color:#fff5f5; border-left: 6px solid"
-        f" {kategori_renk}; padding: 15px; border-radius: 8px;'>"
-        f"{protokol}</div>"
+        f"<div style='background-color:#fef2f2; border-left: 5px solid"
+        f" {kategori_renk}; padding: 14px; border-radius: 8px; color:"
+        f" #991b1b; font-size: 15px; line-height: 1.5;'>{protokol}</div>"
     )
     st.markdown(proto_html, unsafe_allow_html=True)
 
-  st.markdown("### 📞 Hızlı İletişim Hatları")
+  st.markdown(
+      "<h4 style='color:#1e293b; font-size:16px; margin-top:20px;'>📞 Hızlı"
+      " İletişim Hatları</h4>",
+      unsafe_allow_html=True,
+  )
   btn1_html = (
       f"<a href='tel:{tel1}' class='call-btn-1'>📞 {ad1} Ara ({tel1})</a>"
   )
@@ -165,7 +183,7 @@ if ogrenci_id and ogrenci_id in veritabani:
   )
   st.markdown(btn2_html, unsafe_allow_html=True)
 
-  st.markdown("")
+  st.markdown("<div style='margin: 15px 0;'></div>", unsafe_allow_html=True)
   st.markdown(
       "<a href='tel:112' class='call-btn-112'>🚨 112 ACİL ÇAĞRI MERKEZİNİ"
       " BAĞLAN</a>",
@@ -174,8 +192,8 @@ if ogrenci_id and ogrenci_id in veritabani:
 
   st.markdown("---")
   loc_html = (
-      "<div style='background-color:#edf2f7; padding:10px; border-radius:6px;"
-      f" font-size:13px; color:#4a5568;'><b>💊 İlaç / Malzeme Lokasyonu:</b>"
+      "<div style='background-color:#f1f5f9; padding:12px; border-radius:10px;"
+      f" font-size:14px; color:#334155;'><b>💊 İlaç / Malzeme Lokasyonu:</b>"
       f" {lokasyon}</div>"
   )
   st.markdown(loc_html, unsafe_allow_html=True)
@@ -245,8 +263,7 @@ if ogrenci_id and ogrenci_id in veritabani:
 # --- 2. SENARYO: REHBER ÖĞRETMEN YÖNETİM VE GÜNCELLEME PANELİ ---
 else:
   st.markdown(
-      '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE GÜNCELLEME'
-      " PANELİ</div>",
+      '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE PANELİ</div>',
       unsafe_allow_html=True,
   )
 
@@ -257,7 +274,7 @@ else:
   if sifre == "MAI2026":
     st.success(
         "✅ Yetki doğrulandı. Öğrenci bilgilerini güncelleyebilir, yeni"
-        " öğrenci ekleyebilir ve QR kodlarını indirebilirsiniz."
+        " öğrenci ekleyebilir veya silebilirsiniz."
     )
 
     st.markdown("---")
@@ -266,6 +283,7 @@ else:
         [
             "Mevcut Öğrenciyi Güncelle & Veli Şifresi Belirle",
             "Yeni Öğrenci Ekle & QR Oluştur",
+            "Öğrenci Kaydı Sil",
         ],
     )
 
@@ -377,6 +395,27 @@ else:
               " oluşturuldu!"
           )
 
+    elif secilen_islem == "Öğrenci Kaydı Sil":
+      st.subheader("🗑️ Öğrenci Kaydı Sil")
+      if len(veritabani) > 0:
+        silinecek_secim = st.selectbox(
+            "Silinecek Öğrenciyi Seçin:", list(veritabani.keys())
+        )
+        st.warning(
+            f"⚠️ Dikkat: **{silinecek_secim}** ID'li öğrenci kaydı kalıcı olarak"
+            " silinecektir!"
+        )
+        if st.button("Seçilen Öğrenciyi Kalıcı Olarak Sil"):
+          if silinecek_secim in veritabani:
+            del veritabani[silinecek_secim]
+            veritabanini_kaydet(veritabani)
+            st.success(
+                f"🗑️ {silinecek_secim} kodlu öğrenci başarıyla silindi! Lütfen"
+                " sayfayı yenileyin."
+            )
+      else:
+        st.info("Sistemde silinecek kayıt bulunmamaktadır.")
+
   elif sifre != "":
     st.error("❌ Hatalı şifre!")
   else:
@@ -386,7 +425,7 @@ else:
     )
 
 st.markdown(
-    "<p style='text-align:center; font-size:11px; color:#a0aec0;"
-    " margin-top:30px;'>Mehmet Akif İnan Ortaokulu • Dinamik Sağlık Modülü</p>",
+    "<p style='text-align:center; font-size:11px; color:#94a3b8;"
+    " margin-top:30px;'>Mehmet Akif İnan Ortaokulu • Mobil Sağlık Modülü</p>",
     unsafe_allow_html=True,
 )
