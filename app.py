@@ -44,6 +44,7 @@ def veritabanini_yukle():
             "veli_ad_1": "Ahmet Bey (Baba)",
             "veli_tel_2": "+905429876543",
             "veli_ad_2": "Fatma Hanım (Anne)",
+            "veli_sifre": "1234",  # Veli şifresi
         }
     }
     with open(DB_FILE, "w", encoding="utf-8") as f:
@@ -109,6 +110,7 @@ temel_url = "https://okul-saglik-asistani-spuk5zx9pxaeqiumqtcra9.streamlit.app"
 query_params = st.query_params
 ogrenci_id = query_params.get("id", None)
 
+# --- 1. SENARYO: QR KOD OKUTULDUĞUNDA ACİL DURUM EKRANI ---
 if ogrenci_id and ogrenci_id in veritabani:
   aktif_ogrenci = veritabani[ogrenci_id]
 
@@ -128,6 +130,7 @@ if ogrenci_id and ogrenci_id in veritabani:
   ad1 = aktif_ogrenci["veli_ad_1"]
   tel2 = aktif_ogrenci["veli_tel_2"]
   ad2 = aktif_ogrenci["veli_ad_2"]
+  veli_sifre = aktif_ogrenci.get("veli_sifre", "1234")
 
   card_html = (
       f"<div class='card-box' style='border-left-color: {kategori_renk};'>"
@@ -177,6 +180,69 @@ if ogrenci_id and ogrenci_id in veritabani:
   )
   st.markdown(loc_html, unsafe_allow_html=True)
 
+  # --- VELİ GİRİŞİ İLE BİLGİ GÜNCELLEME ALANI ---
+  st.markdown("---")
+  with st.expander("🔐 Veli Girişi ile Bilgi Güncelle"):
+    girilen_veli_sifre = st.text_input(
+        "Veli Şifrenizi Giriniz:",
+        type="password",
+        placeholder="Veli şifresi...",
+        key="veli_giris_sifre",
+    )
+
+    if girilen_veli_sifre == veli_sifre:
+      st.success("✅ Veli yetkisi doğrulandı. Bilgileri güncelleyebilirsiniz:")
+      with st.form("veli_guncelle_form"):
+        yeni_hastalik = st.text_input(
+            "Sağlık Durumu / Rahatsızlık", aktif_ogrenci["hastalik"]
+        )
+        yeni_tel1 = st.text_input("1. Veli Tel", aktif_ogrenci["veli_tel_1"])
+        yeni_ad1 = st.text_input(
+            "1. Veli Adı ve Yakınlığı", aktif_ogrenci["veli_ad_1"]
+        )
+        yeni_tel2 = st.text_input("2. Veli Tel", aktif_ogrenci["veli_tel_2"])
+        yeni_ad2 = st.text_input(
+            "2. Veli Adı ve Yakınlığı", aktif_ogrenci["veli_ad_2"]
+        )
+        yeni_lokasyon = st.text_input(
+            "İlaç / Malzeme Lokasyonu", aktif_ogrenci["lokasyon"]
+        )
+
+        veli_kaydet_btn = st.form_submit_button(
+            "Bilgilerimi Güncelle ve Kaydet"
+        )
+
+        if veli_kaydet_btn:
+          veritabani[ogrenci_id]["hastalik"] = yeni_hastalik
+          veritabani[ogrenci_id]["veli_tel_1"] = yeni_tel1
+          veritabani[ogrenci_id]["veli_ad_1"] = yeni_ad1
+          veritabani[ogrenci_id]["veli_tel_2"] = yeni_tel2
+          veritabani[ogrenci_id]["veli_ad_2"] = yeni_ad2
+          veritabani[ogrenci_id]["lokasyon"] = yeni_lokasyon
+          veritabanini_kaydet(veritabani)
+          st.success(
+              "🎉 Sağlık ve iletişim bilgileriniz başarıyla güncellendi!"
+          )
+    elif girilen_veli_sifre != "":
+      st.error("❌ Hatalı veli şifresi!")
+
+  # --- İDARE / REHBER ÖĞRETMEN GEÇİŞİ ---
+  with st.expander("🔐 İdare & Rehber Öğretmen Paneli Geçişi"):
+    acil_yonetici_sifre = st.text_input(
+        "Yönetici Şifresini Giriniz:",
+        type="password",
+        placeholder="Şifre...",
+        key="acil_yonetici_sifre_giris",
+    )
+    if acil_yonetici_sifre == "MAI2026":
+      st.success("✅ Şifre doğrulandı!")
+      st.markdown(
+          f"👉 Yönetim Paneline gitmek için tıklayın: **[{temel_url}]({temel_url})**"
+      )
+    elif acil_yonetici_sifre != "":
+      st.error("❌ Hatalı şifre!")
+
+# --- 2. SENARYO: REHBER ÖĞRETMEN YÖNETİM VE GÜNCELLEME PANELİ ---
 else:
   st.markdown(
       '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE GÜNCELLEME'
@@ -198,12 +264,12 @@ else:
     secilen_islem = st.radio(
         "İşlem Seçin:",
         [
-            "Mevcut Öğrenciyi Güncelle & QR İndir",
+            "Mevcut Öğrenciyi Güncelle & Veli Şifresi Belirle",
             "Yeni Öğrenci Ekle & QR Oluştur",
         ],
     )
 
-    if secilen_islem == "Mevcut Öğrenciyi Güncelle & QR İndir":
+    if secilen_islem == "Mevcut Öğrenciyi Güncelle & Veli Şifresi Belirle":
       ogrenci_sec = st.selectbox(
           "İşlem Yapılacak Öğrenciyi Seçin:", list(veritabani.keys())
       )
@@ -251,6 +317,9 @@ else:
           yeni_tel1 = st.text_input("1. Veli Tel", ogrenci["veli_tel_1"])
           yeni_tel2 = st.text_input("2. Veli Tel", ogrenci["veli_tel_2"])
           yeni_lokasyon = st.text_input("İlaç Lokasyonu", ogrenci["lokasyon"])
+          yeni_veli_sifre = st.text_input(
+              "Veli Giriş Şifresi", ogrenci.get("veli_sifre", "1234")
+          )
 
           kaydet_btn = st.form_submit_button("Bilgileri Güncelle")
 
@@ -261,8 +330,9 @@ else:
             veritabani[ogrenci_sec]["veli_tel_1"] = yeni_tel1
             veritabani[ogrenci_sec]["veli_tel_2"] = yeni_tel2
             veritabani[ogrenci_sec]["lokasyon"] = yeni_lokasyon
+            veritabani[ogrenci_sec]["veli_sifre"] = yeni_veli_sifre
             veritabanini_kaydet(veritabani)
-            st.success("🎉 Bilgiler başarıyla güncellendi!")
+            st.success("🎉 Bilgiler ve Veli şifresi başarıyla güncellendi!")
 
     elif secilen_islem == "Yeni Öğrenci Ekle & QR Oluştur":
       with st.form("yeni_ekle_form"):
@@ -281,6 +351,9 @@ else:
         yeni_ad1 = st.text_input("1. Veli Adı ve Yakınlığı")
         yeni_tel2 = st.text_input("2. Veli Telefonu")
         yeni_ad2 = st.text_input("2. Veli Adı ve Yakınlığı")
+        yeni_veli_sifre = st.text_input(
+            "Veli Giriş Şifresi Belirle", value="1234"
+        )
 
         ekle_btn = st.form_submit_button("Sisteme Kaydet ve QR Üret")
 
@@ -296,10 +369,12 @@ else:
               "veli_ad_1": yeni_ad1,
               "veli_tel_2": yeni_tel2,
               "veli_ad_2": yeni_ad2,
+              "veli_sifre": yeni_veli_sifre,
           }
           veritabanini_kaydet(veritabani)
           st.success(
-              f"🎉 {yeni_id} kodlu yeni öğrenci başarıyla sisteme eklendi!"
+              f"🎉 {yeni_id} kodlu yeni öğrenci ve veli şifresi başarıyla"
+              " oluşturuldu!"
           )
 
   elif sifre != "":
