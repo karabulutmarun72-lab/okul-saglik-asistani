@@ -38,9 +38,9 @@ def veritabanini_yukle():
             "kategori_renk": "#e53e3e",
             "kan_grubu": "A Rh(+)",
             "protokol": (
-                "<b>1. Bilinç Yerindeyse:</b> Panik yapmayın. Hemen"
-                " glikoz jeli veya 1 bardak şekerli su verin.<br><b>2. Bilinç"
-                " Kapalıysa:</b> ASLA ağızdan sıvı vermeyin, yan yatırın."
+                "1. Bilinç Yerindeyse: Panik yapmayın. Hemen glikoz jeli veya"
+                " 1 bardak şekerli su verin.<br>2. Bilinç Kapalıysa: ASLA"
+                " ağızdan sıvı vermeyin, yan yatırın."
             ),
             "lokasyon": "Yedek insülin hemşireliktedir.",
             "veli_tel_1": "+905551234567",
@@ -126,7 +126,62 @@ if ogrenci_id and ogrenci_id in veritabani:
       unsafe_allow_html=True,
   )
 
+  kategori_renk = aktif_ogrenci["kategori_renk"]
+  ogrenci_kod = aktif_ogrenci["ad_soyad_kod"]
+  hastalik = aktif_ogrenci["hastalik"]
+  kan_grubu = aktif_ogrenci["kan_grubu"]
+  protokol = aktif_ogrenci["protokol"]
+  lokasyon = aktif_ogrenci["lokasyon"]
+  tel1 = aktif_ogrenci["veli_tel_1"]
+  ad1 = aktif_ogrenci["veli_ad_1"]
+  tel2 = aktif_ogrenci["veli_tel_2"]
+  ad2 = aktif_ogrenci["veli_ad_2"]
+
   st.markdown(
       f"""
-    <div class="card-box" style="border-left-color: {aktif_ogrenci['kategori_renk']};">
-        <h3 style="margin-top:0; color:#2d37
+    <div class="card-box" style="border-left-color: {kategori_renk};">
+        <h3 style="margin-top:0; color:#2d3748; font-size:18px;">🆔 Kayıt: <b>{ogrenci_kod}</b></h3>
+        <p style="margin:4px 0; font-size:16px;"><b>⚠️ Sağlık Durumu:</b> <span style="color: {kategori_renk}; font-weight: bold;">{hastalik}</span></p>
+        <p style="margin:4px 0; color:#4a5568;"><b>Kan Grubu:</b> {kan_grubu}</p>
+    </div>
+    """,
+      unsafe_allow_html=True,
+  )
+
+  with st.expander(
+      "🚨 KRİTİK İLK MÜDAHALE REHBERİ (Tıkla / Aç)", expanded=True
+  ):
+    st.markdown(
+        f"""
+        <div style="background-color:#fff5f5; border-left: 6px solid {kategori_renk}; padding: 15px; border-radius: 8px;">
+            {protokol}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+  st.markdown("### 📞 Hızlı İletişim Hatları")
+  st.markdown(
+      f"""<a href="tel:{tel1}" class="call-btn-1">📞 {ad1} Ara ({tel1})</a>""",
+      unsafe_allow_html=True,
+  )
+  st.markdown(
+      f"""<a href="tel:{tel2}" class="call-btn-1">📞 {ad2} Ara ({tel2})</a>""",
+      unsafe_allow_html=True,
+  )
+  st.markdown("")
+  st.markdown(
+      """<a href="tel:112" class="call-btn-112">🚨 112 ACİL ÇAĞRI MERKEZİNİ BAĞLAN</a>""",
+      unsafe_allow_html=True,
+  )
+
+  st.markdown("---")
+  st.markdown(
+      f"""<div style="background-color:#edf2f7; padding:10px; border-radius:6px; font-size:13px; color:#4a5568;"><b>💊 İlaç / Malzeme Lokasyonu:</b> {lokasyon}</div>""",
+      unsafe_allow_html=True,
+  )
+
+# --- 2. SENARYO: REHBER ÖĞRETMEN YÖNETİM VE GÜNCELLEME PANELİ ---
+else:
+  st.markdown(
+      '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE G
