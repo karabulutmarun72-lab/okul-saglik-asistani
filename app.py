@@ -28,7 +28,7 @@ KAN_GRUPLARI = [
 ]
 
 
-# Varsayılan veritabanı oluşturma (Eğer yoksa)
+# Varsayılan veritabanı oluşturma
 def veritabanini_yukle():
   if not os.path.exists(DB_FILE):
     varsayilan_veri = {
@@ -77,7 +77,6 @@ def qr_kod_uret(veri_metni):
   return buf.getvalue()
 
 
-# Verileri yükle
 veritabani = veritabanini_yukle()
 
 # Mobil Uyumlu Özel Tasarım CSS
@@ -110,105 +109,65 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Canlı web adresiniz
 temel_url = "https://okul-saglik-asistani.streamlit.app"
 
 # URL parametresinden öğrenci ID'sini alma
 query_params = st.query_params
 ogrenci_id = query_params.get("id", None)
 
-# --- 1. SENARYO: QR KOD OKUTULDUĞUNDA ACİL DURUM EKRANI (KVKK Korumalı) ---
+# --- 1. SENARYO: QR KOD OKUTULDUĞUNDA ACİL DURUM EKRANI ---
 if ogrenci_id and ogrenci_id in veritabani:
   aktif_ogrenci = veritabani[ogrenci_id]
 
   st.markdown(
-      '<div class="mobile-header">🏫 MEHMET AKİF İNAN ORTAOKULU<br>ACİL'
-      " SAĞLIK KÜNYESİ</div>",
+      '<div class="mobile-header">🚨 ACİL SAĞLIK & İLK MÜDAHALE'
+      ' EKRANI</div>',
       unsafe_allow_html=True,
   )
 
   st.markdown(
       f"""
-    <div class="card-box" style="border-left-color: #3182ce; text-align: center;">
-        <h3 style="margin-top:0; color:#2d3748; font-size:18px;">🆔 Kayıt Kodu: <b>{aktif_ogrenci['ad_soyad_kod']}</b></h3>
-        <p style="color:#718096; font-size:14px;">Bu kimlik kartı Mehmet Akif İnan Ortaokulu öğrencisine aittir. Güvenlik ve gizlilik (KVKK) gereği hassas sağlık verileri maskelenmiştir.</p>
+    <div class="card-box" style="border-left-color: {aktif_ogrenci['kategori_renk']};">
+        <h3 style="margin-top:0; color:#2d3748; font-size:18px;">🆔 Kayıt: <b>{aktif_ogrenci['ad_soyad_kod']}</b></h3>
+        <p style="margin:4px 0; font-size:16px;"><b>⚠️ Sağlık Durumu:</b> <span style="color: {aktif_ogrenci['kategori_renk']}; font-weight: bold;">{aktif_ogrenci['hastalik']}</span></p>
+        <p style="margin:4px 0; color:#4a5568;"><b>Kan Grubu:</b> {aktif_ogrenci['kan_grubu']}</p>
     </div>
     """,
       unsafe_allow_html=True,
   )
 
-  # Yetkili Girişi (Öğretmenler için PIN / Şifre Korumalı Açma)
-  st.markdown("### 🔐 Yetkili / Öğretmen Doğrulama Alanı")
-  yetkili_sifre = st.text_input(
-      "Sağlık Bilgilerini ve Veli Hatlarını Görmek İçin Şifre Girin:",
-      type="password",
-      placeholder="Öğretmen şifresi...",
-      key="acil_sifre_giris",
-  )
-
-  if yetkili_sifre == "MAI2026":
-    st.success("✅ Yetki doğrulandı. Kritik sağlık verileri ve hatlar açıldı.")
-
+  with st.expander(
+      "🚨 KRİTİK İLK MÜDAHALE REHBERİ (Tıkla / Aç)", expanded=True
+  ):
     st.markdown(
         f"""
-        <div class="card-box" style="border-left-color: {aktif_ogrenci['kategori_renk']};">
-            <p style="margin:4px 0; font-size:16px;"><b>⚠️ Sağlık Durumu:</b> <span style="color: {aktif_ogrenci['kategori_renk']}; font-weight: bold;">{aktif_ogrenci['hastalik']}</span></p>
-            <p style="margin:4px 0; color:#4a5568;"><b>Kan Grubu:</b> {aktif_ogrenci['kan_grubu']}</p>
+        <div style="background-color:#fff5f5; border-left: 6px solid {aktif_ogrenci['kategori_renk']}; padding: 15px; border-radius: 8px;">
+            {aktif_ogrenci['protokol']}
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    with st.expander(
-        "🚨 KRİTİK İLK MÜDAHALE REHBERİ (Tıkla / Aç)", expanded=True
-    ):
-      st.markdown(
-          f"""
-            <div style="background-color:#fff5f5; border-left: 6px solid {aktif_ogrenci['kategori_renk']}; padding: 15px; border-radius: 8px;">
-                {aktif_ogrenci['protokol']}
-            </div>
-            """,
-          unsafe_allow_html=True,
-      )
+  st.markdown("### 📞 Hızlı İletişim Hatları")
+  st.markdown(
+      f"""<a href="tel:{aktif_ogrenci['veli_tel_1']}" class="call-btn-1">📞 {aktif_ogrenci['veli_ad_1']} Ara ({aktif_ogrenci['veli_tel_1']})</a>""",
+      unsafe_allow_html=True,
+  )
+  st.markdown(
+      f"""<a href="tel:{aktif_ogrenci['veli_tel_2']}" class="call-btn-1">📞 {aktif_ogrenci['veli_ad_2']} Ara ({aktif_ogrenci['veli_tel_2']})</a>""",
+      unsafe_allow_html=True,
+  )
+  st.markdown("")
+  st.markdown(
+      """<a href="tel:112" class="call-btn-112">🚨 112 ACİL ÇAĞRI MERKEZİNİ BAĞLAN</a>""",
+      unsafe_allow_html=True,
+  )
 
-    st.markdown("### 📞 Hızlı İletişim Hatları")
-    st.markdown(
-        f"""<a href="tel:{aktif_ogrenci['veli_tel_1']}" class="call-btn-1">📞 {aktif_ogrenci['veli_ad_1']} Ara ({aktif_ogrenci['veli_tel_1']})</a>""",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f"""<a href="tel:{aktif_ogrenci['veli_tel_2']}" class="call-btn-1">📞 {aktif_ogrenci['veli_ad_2']} Ara ({aktif_ogrenci['veli_tel_2']})</a>""",
-        unsafe_allow_html=True,
-    )
-    st.markdown("")
-    st.markdown(
-        """<a href="tel:112" class="call-btn-112">🚨 112 ACİL ÇAĞRI MERKEZİNİ BAĞLAN</a>""",
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("---")
-    st.markdown(
-        f"""<div style="background-color:#edf2f7; padding:10px; border-radius:6px; font-size:13px; color:#4a5568;"><b>💊 İlaç / Malzeme Lokasyonu:</b> {aktif_ogrenci['lokasyon']}</div>""",
-        unsafe_allow_html=True,
-    )
-
-  elif yetkili_sifre != "":
-    st.error("❌ Hatalı şifre!")
-  else:
-    st.info(
-        "ℹ️ Acil müdahale protokolünü ve veli iletişim numaralarını görmek için"
-        " lütfen rehberlik şifrenizi giriniz."
-    )
-    st.markdown("---")
-    st.markdown(
-        "🚨 Acil durumlarda doğrudan <b>112 Acil Çağrı Merkezi</b>'ni"
-        " arayabilirsiniz:",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        """<a href="tel:112" class="call-btn-112">🚨 112 ACİL ÇAĞRI MERKEZİNİ BAĞLAN</a>""",
-        unsafe_allow_html=True,
-    )
+  st.markdown("---")
+  st.markdown(
+      f"""<div style="background-color:#edf2f7; padding:10px; border-radius:6px; font-size:13px; color:#4a5568;"><b>💊 İlaç / Malzeme Lokasyonu:</b> {aktif_ogrenci['lokasyon']}</div>""",
+      unsafe_allow_html=True,
+  )
 
 # --- 2. SENARYO: REHBER ÖĞRETMEN YÖNETİM VE GÜNCELLEME PANELİ ---
 else:
