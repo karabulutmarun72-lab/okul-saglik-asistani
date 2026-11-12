@@ -184,4 +184,141 @@ if ogrenci_id and ogrenci_id in veritabani:
 # --- 2. SENARYO: REHBER ÖĞRETMEN YÖNETİM VE GÜNCELLEME PANELİ ---
 else:
   st.markdown(
-      '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE G
+      '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE GÜNCELLEME'
+      " PANELİ</div>",
+      unsafe_allow_html=True,
+  )
+
+  sifre = st.text_input(
+      "Yönetici Şifresini Giriniz:", type="password", placeholder="Şifre..."
+  )
+
+  if sifre == "MAI2026":
+    st.success(
+        "✅ Yetki doğrulandı. Öğrenci bilgilerini güncelleyebilir, yeni"
+        " öğrenci ekleyebilir ve QR kodlarını indirebilirsiniz."
+    )
+
+    st.markdown("---")
+    secilen_islem = st.radio(
+        "İşlem Seçin:",
+        [
+            "Mevcut Öğrenciyi Güncelle & QR İndir",
+            "Yeni Öğrenci Ekle & QR Oluştur",
+        ],
+    )
+
+    if secilen_islem == "Mevcut Öğrenciyi Güncelle & QR İndir":
+      ogrenci_sec = st.selectbox(
+          "İşlem Yapılacak Öğrenciyi Seçin:", list(veritabani.keys())
+      )
+
+      if ogrenci_sec:
+        ogrenci = veritabani[ogrenci_sec]
+
+        ogrenci_hedef_url = f"{temel_url}/?id={ogrenci_sec}"
+        qr_byte = qr_kod_uret(ogrenci_hedef_url)
+
+        col1, col2 = st.columns([1, 2])
+        with col1:
+          st.image(
+              qr_byte,
+              caption=f"QR: {ogrenci_sec}",
+              use_container_width=True,
+          )
+          st.download_button(
+              label="📥 QR Kodu İndir (PNG)",
+              data=qr_byte,
+              file_name=f"karekod_{ogrenci_sec}.png",
+              mime="image/png",
+          )
+        with col2:
+          st.info(
+              f"**Hedef Bağlantı:** `{ogrenci_hedef_url}`\n\nYandaki butona"
+              " basarak bu öğrencinin kartına basılacak QR görselini"
+              " indirebilirsiniz."
+          )
+
+        st.markdown("---")
+        with st.form("guncelle_form"):
+          st.subheader(f"Düzenlenen Kayıt: {ogrenci_sec}")
+          yeni_ad = st.text_input("Öğrenci Adı / Kodu", ogrenci["ad_soyad_kod"])
+          yeni_hastalik = st.text_input("Sağlık Durumu", ogrenci["hastalik"])
+
+          mevcut_kan = (
+              ogrenci["kan_grubu"]
+              if ogrenci["kan_grubu"] in KAN_GRUPLARI
+              else KAN_GRUPLARI[0]
+          )
+          kan_index = KAN_GRUPLARI.index(mevcut_kan)
+          yeni_kan = st.selectbox(
+              "Kan Grubu", KAN_GRUPLARI, index=kan_index
+          )
+
+          yeni_tel1 = st.text_input("1. Veli Tel", ogrenci["veli_tel_1"])
+          yeni_tel2 = st.text_input("2. Veli Tel", ogrenci["veli_tel_2"])
+          yeni_lokasyon = st.text_input("İlaç Lokasyonu", ogrenci["lokasyon"])
+
+          kaydet_btn = st.form_submit_button("Bilgileri Güncelle")
+
+          if kaydet_btn:
+            veritabani[ogrenci_sec]["ad_soyad_kod"] = yeni_ad
+            veritabani[ogrenci_sec]["hastalik"] = yeni_hastalik
+            veritabani[ogrenci_sec]["kan_grubu"] = yeni_kan
+            veritabani[ogrenci_sec]["veli_tel_1"] = yeni_tel1
+            veritabani[ogrenci_sec]["veli_tel_2"] = yeni_tel2
+            veritabani[ogrenci_sec]["lokasyon"] = yeni_lokasyon
+            veritabanini_kaydet(veritabani)
+            st.success("🎉 Bilgiler başarıyla güncellendi!")
+
+    elif secilen_islem == "Yeni Öğrenci Ekle & QR Oluştur":
+      with st.form("yeni_ekle_form"):
+        st.subheader("Yeni Öğrenci Tanımla")
+        yeni_id = st.text_input(
+            "Özgün QR ID Kodu (Örn: MAI-5C-05)", placeholder="MAI-..."
+        )
+        yeni_ad = st.text_input("Öğrenci Kodu / Adı (Örn: Öğrenci #05 (5/C))")
+        yeni_hastalik = st.text_input("Sağlık Durumu / Rahatsızlık")
+        yeni_kan = st.selectbox("Kan Grubu", KAN_GRUPLARI)
+        yeni_protokol = st.text_area(
+            "Acil Müdahale Protokolü (HTML destekli)"
+        )
+        yeni_lokasyon = st.text_input("İlaç / Malzeme Nerede?")
+        yeni_tel1 = st.text_input("1. Veli Telefonu")
+        yeni_ad1 = st.text_input("1. Veli Adı ve Yakınlığı")
+        yeni_tel2 = st.text_input("2. Veli Telefonu")
+        yeni_ad2 = st.text_input("2. Veli Adı ve Yakınlığı")
+
+        ekle_btn = st.form_submit_button("Sisteme Kaydet ve QR Üret")
+
+        if ekle_btn and yeni_id:
+          veritabani[yeni_id] = {
+              "ad_soyad_kod": yeni_ad,
+              "hastalik": yeni_hastalik,
+              "kategori_renk": "#e53e3e",
+              "kan_grubu": yeni_kan,
+              "protokol": yeni_protokol,
+              "lokasyon": yeni_lokasyon,
+              "veli_tel_1": yeni_tel1,
+              "veli_ad_1": yeni_ad1,
+              "veli_tel_2": yeni_tel2,
+              "veli_ad_2": yeni_ad2,
+          }
+          veritabanini_kaydet(veritabani)
+          st.success(
+              f"🎉 {yeni_id} kodlu yeni öğrenci başarıyla sisteme eklendi!"
+          )
+
+  elif sifre != "":
+    st.error("❌ Hatalı şifre!")
+  else:
+    st.info(
+        "ℹ️ Öğrenci sağlık verilerini güncellemek veya QR kod indirmek için"
+        " lütfen şifrenizi giriniz."
+    )
+
+st.markdown(
+    "<p style='text-align:center; font-size:11px; color:#a0aec0;"
+    " margin-top:30px;'>Mehmet Akif İnan Ortaokulu • Dinamik Sağlık Modülü</p>",
+    unsafe_allow_html=True,
+)
