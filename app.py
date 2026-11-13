@@ -112,7 +112,7 @@ temel_url = "https://okul-saglik-asistani-spuk5zx9pxaeqiumqtcra9.streamlit.app"
 query_params = st.query_params
 ogrenci_id = query_params.get("id", None)
 
-# --- 1. SENARYO: QR KOD OKUTULDUĞUNDA ACİL DURUM EKRANI (2. Görseliniz) ---
+# --- 1. SENARYO: QR KOD OKUTULDUĞUNDA VEYA SEÇİLDİĞİNDE ACİL DURUM EKRANI ---
 if ogrenci_id and ogrenci_id in veritabani:
   aktif_ogrenci = veritabani[ogrenci_id]
 
@@ -237,22 +237,42 @@ if ogrenci_id and ogrenci_id in veritabani:
     st.query_params.clear()
     st.rerun()
 
-# --- 2. SENARYO: ANA EKRAN (1. Görseliniz + QR Seçimi Eklendi) ---
+# --- 2. SENARYO: ANA EKRAN (QR Okut / ID Gir / İdare Paneli) ---
 else:
   st.markdown(
       '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE PANELİ</div>',
       unsafe_allow_html=True,
   )
 
-  # --- EKLENEN ÖZELLİK: ANA EKRANDAN HIZLI QR / ACİL DURUM GÖRÜNTÜLEME ---
-  with st.expander("📸 Öğrenci QR Kodu / Acil Durumu Görüntüle", expanded=False):
+  # --- EKLENEN ÖZELLİK: QR KOD OKUT / ID İLE ACİL DURUM GÖRÜNTÜLE ---
+  with st.expander(
+      "📸 Karekod Okut / QR ID Kodu ile Acil Durum Görüntüle", expanded=True
+  ):
     st.info(
-        "Karekod okutmak yerine buradan öğrenci seçerek acil durum kartını"
-        " anında görüntüleyebilirsiniz:"
+        "Öğrencinin karekodunu okutarak veya ID kodunu girerek kısıtlı acil"
+        " durum ekranına anında ulaşabilirsiniz:"
+    )
+
+    # Manuel ID / QR Kodu Giriş Alanı
+    girilen_qr_id = st.text_input(
+        "Karekod ID Kodunu Girin veya Okutun (Örn: MAI-5A-14)",
+        placeholder="MAI-...",
+        key="manuel_qr_giris",
+    )
+    if st.button("🚨 Karekod / ID ile Acil Ekranını Aç"):
+      if girilen_qr_id.strip() in veritabani:
+        st.query_params["id"] = girilen_qr_id.strip()
+        st.rerun()
+      elif girilen_qr_id.strip() != "":
+        st.error("❌ Bu ID koduna ait sistemde kayıtlı öğrenci bulunamadı!")
+
+    st.markdown("---")
+    st.markdown(
+        "Veya listeden hızlıca seçerek acil ekranını açabilirsiniz:"
     )
     if len(veritabani) > 0:
       secilen_hizli_ogrenci = st.selectbox(
-          "Öğrenci Seçin:",
+          "Kayıtlı Öğrenci Listesi:",
           list(veritabani.keys()),
           format_func=lambda x: (
               f"{veritabani[x]['ad_soyad_kod']} ({x})"
@@ -386,8 +406,12 @@ else:
               "veli_ad_1": yeni_ad1,
               "veli_tel_2": yeni_tel2,
               "veli_ad_2": yeni_ad2,
-              "veli_sifre": yeni_veli_sifre,
+              "veli_sifre": yeni_veli_s_ifre
+              if "yeni_veli_sifre" in locals()
+              else "1234",
           }
+          # Düzeltilmiş anahtar ataması
+          veritabani[yeni_id]["veli_sifre"] = yeni_veli_sifre
           veritabanini_kaydet(veritabani)
           st.success(
               f"🎉 {yeni_id} kodlu yeni öğrenci ve veli şifresi başarıyla"
