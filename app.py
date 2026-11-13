@@ -3,6 +3,7 @@ import json
 import os
 import qrcode
 import streamlit as st
+import streamlit.components.v1 as components
 
 # Sayfa Yapılandırması (Mobil öncelikli görünüm)
 st.set_page_config(
@@ -237,21 +238,55 @@ if ogrenci_id and ogrenci_id in veritabani:
     st.query_params.clear()
     st.rerun()
 
-# --- 2. SENARYO: ANA EKRAN (Form Tabanlı Güvenli ID Girişi & İdare Paneli) ---
+# --- 2. SENARYO: ANA EKRAN (Kamerayı Aç / QR Oku & İdare Paneli) ---
 else:
   st.markdown(
       '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE PANELİ</div>',
       unsafe_allow_html=True,
   )
 
-  # --- FORM İLE HATASIZ ACİL DURUM ERİŞİMİ ---
-  with st.expander(
-      "🚨 Öğrenci Acil Durum Kartını Görüntüle", expanded=True
-  ):
+  # --- KAMERA İLE KAREKOD OKUTMA BÖLÜMÜ ---
+  with st.expander("📸 Kamerayı Aç ve Karekod (QR) Tara", expanded=True):
+    st.markdown(
+        "Telefonunuzun kamerasını açarak öğrencinin yaka kartındaki karekodu"
+        " taratın:"
+    )
+
+    # HTML5 Yerli Kamera / Dosya yakalayıcı ve QR kod çözücü bileşeni
+    cam_scanner_html = """
+        <div style="display: flex; justify-content: center; align-items: center; flex-direction: column; background: #eff6ff; padding: 18px; border-radius: 12px; border: 2px dashed #3b82f6;">
+            <p style="color: #1e3a8a; font-weight: bold; margin-bottom: 12px; font-size: 15px; text-align: center;">📱 Hızlı Kamera ile QR Okut</p>
+            <input type="file" accept="image/*" capture="environment" id="qr-input-file" style="display:none;" onchange="handleQRScan(event)">
+            <button onclick="document.getElementById('qr-input-file').click()" style="background-color: #2563eb; color: white; border: none; padding: 15px 22px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(37,99,235,0.3);">📸 Kamerayı Aç / Fotoğraf Çek</button>
+            <p id="scan-status" style="margin-top: 12px; font-weight: bold; color: #16a34a; font-size: 14px; text-align: center;"></p>
+        </div>
+        <script src="https://unpkg.com/html5-qrcode@2.3.8/min/html5-qrcode.min.js"></script>
+        <script>
+        function handleQRScan(e) {
+            if (e.target.files.length === 0) return;
+            const file = e.target.files[0];
+            document.getElementById('scan-status').innerText = "⏳ QR kod okunuyor...";
+            
+            Html5Qrcode.scanFile(file, true)
+            .then(decodedText => {
+                document.getElementById('scan-status').innerText = "✅ Başarılı! Yönlendiriliyor...";
+                window.top.location.href = decodedText;
+            })
+            .catch(err => {
+                document.getElementById('scan-status').innerText = "❌ Karekod okunamadı. Lütfen ışığı ayarlayıp tekrar deneyin.";
+            });
+        }
+        </script>
+        """
+    components.html(cam_scanner_html, height=210)
+
+    st.markdown("---")
+
+    # Manuel ID Girişi (Yedek Güvenli Yöntem)
     with st.form("hizli_id_form"):
       st.markdown(
-          "Öğrencinin yaka kartındaki **Karekod ID Kodunu** (Örn: `MAI-5A-14`)"
-          " girerek acil durum ekranına anında ulaşabilirsiniz:"
+          "Veya yaka kartında yazan **Karekod ID Kodunu** (Örn: `MAI-5A-14`)"
+          " elle girin:"
       )
       girilen_id = st.text_input("Öğrenci Karekod ID Kodu:", placeholder="MAI-...")
       form_buton = st.form_submit_button("Acil Durum Ekranını Aç")
