@@ -3,6 +3,7 @@ import json
 import os
 import qrcode
 import streamlit as st
+import streamlit.components.v1 as components
 
 # Sayfa Yapılandırması (Mobil öncelikli görünüm)
 st.set_page_config(
@@ -112,7 +113,7 @@ temel_url = "https://okul-saglik-asistani-spuk5zx9pxaeqiumqtcra9.streamlit.app"
 query_params = st.query_params
 ogrenci_id = query_params.get("id", None)
 
-# --- 1. SENARYO: QR KOD OKUTULDUĞUNDA VEYA SEÇİLDİĞİNDE ACİL DURUM EKRANI ---
+# --- 1. SENARYO: QR KOD OKUTULDUĞUNDA ACİL DURUM EKRANI ---
 if ogrenci_id and ogrenci_id in veritabani:
   aktif_ogrenci = veritabani[ogrenci_id]
 
@@ -237,39 +238,48 @@ if ogrenci_id and ogrenci_id in veritabani:
     st.query_params.clear()
     st.rerun()
 
-# --- 2. SENARYO: ANA EKRAN (QR Okut / ID Gir / İdare Paneli) ---
+# --- 2. SENARYO: ANA EKRAN (Kamera ile QR Okutma & İdare Paneli) ---
 else:
   st.markdown(
       '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE PANELİ</div>',
       unsafe_allow_html=True,
   )
 
-  # --- EKLENEN ÖZELLİK: QR KOD OKUT / ID İLE ACİL DURUM GÖRÜNTÜLE ---
+  # --- CANLI KAMERA İLE KAREKOD OKUTMA BÖLÜMÜ ---
   with st.expander(
-      "📸 Karekod Okut / QR ID Kodu ile Acil Durum Görüntüle", expanded=True
+      "📸 Kameradan Canlı Karekod (QR) Okut", expanded=True
   ):
-    st.info(
-        "Öğrencinin karekodunu okutarak veya ID kodunu girerek kısıtlı acil"
-        " durum ekranına anında ulaşabilirsiniz:"
+    st.markdown(
+        "Aşağıdaki kamera ekranını öğrencinin yaka kartındaki karekoda"
+        " tutun. Kod okunduğunda sistem otomatik olarak acil durum ekranına"
+        " geçecektir:"
     )
 
-    # Manuel ID / QR Kodu Giriş Alanı
-    girilen_qr_id = st.text_input(
-        "Karekod ID Kodunu Girin veya Okutun (Örn: MAI-5A-14)",
-        placeholder="MAI-...",
-        key="manuel_qr_giris",
-    )
-    if st.button("🚨 Karekod / ID ile Acil Ekranını Aç"):
-      if girilen_qr_id.strip() in veritabani:
-        st.query_params["id"] = girilen_qr_id.strip()
-        st.rerun()
-      elif girilen_qr_id.strip() != "":
-        st.error("❌ Bu ID koduna ait sistemde kayıtlı öğrenci bulunamadı!")
+    # HTML5 tabanlı tarayıcı içi kamera QR okuyucu bileşeni
+    scanner_html = f"""
+        <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
+            <div id="reader" style="width: 100%; max-width: 380px; border-radius: 12px; overflow: hidden;"></div>
+            <p id="scan-status" style="margin-top: 8px; font-weight: bold; color: #2563eb; font-size: 14px; text-align: center;"></p>
+        </div>
+        <script src="https://unpkg.com/html5-qrcode@2.3.8/min/html5-qrcode.min.js"></script>
+        <script>
+        function onScanSuccess(decodedText, decodedResult) {{
+            document.getElementById('scan-status').innerText = "✅ Karekod okundu! Açılıyor...";
+            // Taranan URL veya ID'ye yönlendir
+            window.location.href = decodedText;
+        }}
+        function onScanFailure(error) {{
+            // Kamera tarama hatalarını gizle
+        }}
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", {{ fps: 10, qrbox: {{ width: 220, height: 220 }} }}, false);
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        </script>
+        """
+    components.html(scanner_html, height=420)
 
     st.markdown("---")
-    st.markdown(
-        "Veya listeden hızlıca seçerek acil ekranını açabilirsiniz:"
-    )
+    st.markdown("Veya listeden hızlıca seçerek acil ekranını açabilirsiniz:")
     if len(veritabani) > 0:
       secilen_hizli_ogrenci = st.selectbox(
           "Kayıtlı Öğrenci Listesi:",
@@ -406,12 +416,8 @@ else:
               "veli_ad_1": yeni_ad1,
               "veli_tel_2": yeni_tel2,
               "veli_ad_2": yeni_ad2,
-              "veli_sifre": yeni_veli_s_ifre
-              if "yeni_veli_sifre" in locals()
-              else "1234",
+              "veli_sifre": yeni_veli_sifre,
           }
-          # Düzeltilmiş anahtar ataması
-          veritabani[yeni_id]["veli_sifre"] = yeni_veli_sifre
           veritabanini_kaydet(veritabani)
           st.success(
               f"🎉 {yeni_id} kodlu yeni öğrenci ve veli şifresi başarıyla"
