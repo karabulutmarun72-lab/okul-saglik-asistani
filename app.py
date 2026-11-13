@@ -237,35 +237,34 @@ if ogrenci_id and ogrenci_id in veritabani:
     st.query_params.clear()
     st.rerun()
 
-# --- 2. SENARYO: ANA EKRAN (Hızlı ID Girişi & İdare Paneli) ---
+# --- 2. SENARYO: ANA EKRAN (Form Tabanlı Güvenli ID Girişi & İdare Paneli) ---
 else:
   st.markdown(
       '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE PANELİ</div>',
       unsafe_allow_html=True,
   )
 
-  # --- HIZLI ACİL DURUM ERİŞİMİ (ÖĞRENCİ LİSTESİ OLMADAN) ---
+  # --- FORM İLE HATASIZ ACİL DURUM ERİŞİMİ ---
   with st.expander(
       "🚨 Öğrenci Acil Durum Kartını Görüntüle", expanded=True
   ):
-    st.markdown(
-        "Öğrencinin yaka kartındaki **Karekod ID Kodunu** (Örn: `MAI-5A-14`)"
-        " girerek veya barkod okutarak acil durum ekranına anında"
-        " ulaşabilirsiniz:"
-    )
+    with st.form("hizli_id_form"):
+      st.markdown(
+          "Öğrencinin yaka kartındaki **Karekod ID Kodunu** (Örn: `MAI-5A-14`)"
+          " girerek acil durum ekranına anında ulaşabilirsiniz:"
+      )
+      girilen_id = st.text_input("Öğrenci Karekod ID Kodu:", placeholder="MAI-...")
+      form_buton = st.form_submit_button("Acil Durum Ekranını Aç")
 
-    girilen_id = st.text_input(
-        "Öğrenci Karekod ID Kodu:", placeholder="MAI-...", key="hizli_id_input"
-    )
-    if st.button("Acil Durum Ekranını Aç"):
-      temiz_id = girilen_id.strip()
-      if temiz_id in veritabani:
-        st.query_params["id"] = temiz_id
-        st.rerun()
-      elif temiz_id != "":
-        st.error(
-            "❌ Bu ID koduna ait sistemde kayıtlı öğrenci bulunamadı!"
-        )
+      if form_buton:
+        temiz_id = girilen_id.strip()
+        if temiz_id in veritabani:
+          st.query_params["id"] = temiz_id
+          st.rerun()
+        else:
+          st.error(
+              "❌ Bu ID koduna ait sistemde kayıtlı öğrenci bulunamadı!"
+          )
 
   st.markdown("---")
 
