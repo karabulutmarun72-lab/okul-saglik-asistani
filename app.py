@@ -238,45 +238,45 @@ if ogrenci_id and ogrenci_id in veritabani:
     st.query_params.clear()
     st.rerun()
 
-# --- 2. SENARYO: ANA EKRAN (Kamera ile QR Okutma & İdare Paneli) ---
+# --- 2. SENARYO: ANA EKRAN (Kamera İzinli Butonlu Tarayıcı & İdare Paneli) ---
 else:
   st.markdown(
       '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE PANELİ</div>',
       unsafe_allow_html=True,
   )
 
-  # --- CANLI KAMERA İLE KAREKOD OKUTMA BÖLÜMÜ ---
-  with st.expander(
-      "📸 Kameradan Canlı Karekod (QR) Okut", expanded=True
-  ):
+  # --- İZİNLİ VE BUTONLU KAMERA TARAYICI BÖLÜMÜ ---
+  with st.expander("📸 Kamerayı Aç ve Karekod (QR) Tara", expanded=True):
     st.markdown(
-        "Aşağıdaki kamera ekranını öğrencinin yaka kartındaki karekoda"
-        " tutun. Kod okunduğunda sistem otomatik olarak acil durum ekranına"
-        " geçecektir:"
+        "Kamerayı başlatmak ve uygulama için kamera izni istemek için"
+        " aşağıdaki butona tıklayın:"
     )
 
-    # HTML5 tabanlı tarayıcı içi kamera QR okuyucu bileşeni
-    scanner_html = f"""
-        <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
-            <div id="reader" style="width: 100%; max-width: 380px; border-radius: 12px; overflow: hidden;"></div>
-            <p id="scan-status" style="margin-top: 8px; font-weight: bold; color: #2563eb; font-size: 14px; text-align: center;"></p>
+    # İzin isteyen ve kullanıcı tıkladığında kamerayı açan güvenli HTML5 bileşeni
+    cam_button_html = """
+        <div style="display: flex; justify-content: center; align-items: center; flex-direction: column; margin-top: 10px;">
+            <button id="start-cam-btn" onclick="startCamera()" style="background-color: #2563eb; color: white; border: none; padding: 14px 24px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(37,99,235,0.3); width: 100%; max-width: 300px;">📷 Kamerayı Aç ve Tara</button>
+            <div id="reader" style="width: 100%; max-width: 350px; margin-top: 15px; border-radius: 12px; overflow: hidden;"></div>
+            <p id="scan-status" style="margin-top: 10px; font-weight: bold; color: #16a34a; font-size: 14px; text-align: center;"></p>
         </div>
         <script src="https://unpkg.com/html5-qrcode@2.3.8/min/html5-qrcode.min.js"></script>
         <script>
-        function onScanSuccess(decodedText, decodedResult) {{
-            document.getElementById('scan-status').innerText = "✅ Karekod okundu! Açılıyor...";
-            // Taranan URL veya ID'ye yönlendir
-            window.location.href = decodedText;
-        }}
-        function onScanFailure(error) {{
-            // Kamera tarama hatalarını gizle
-        }}
-        let html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", {{ fps: 10, qrbox: {{ width: 220, height: 220 }} }}, false);
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        function startCamera() {
+            document.getElementById('start-cam-btn').style.display = 'none';
+            document.getElementById('scan-status').innerText = "⏳ Kamera izni isteniyor ve açılıyor...";
+            
+            function onScanSuccess(decodedText, decodedResult) {
+                document.getElementById('scan-status').innerText = "✅ Karekod okundu! Yönlendiriliyor...";
+                window.location.href = decodedText;
+            }
+            
+            let html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader", { fps: 10, qrbox: { width: 200, height: 200 } }, false);
+            html5QrcodeScanner.render(onScanSuccess, (err) => {});
+        }
         </script>
         """
-    components.html(scanner_html, height=420)
+    components.html(cam_button_html, height=380)
 
     st.markdown("---")
     st.markdown("Veya listeden hızlıca seçerek acil ekranını açabilirsiniz:")
