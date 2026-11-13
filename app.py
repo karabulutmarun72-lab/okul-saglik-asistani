@@ -80,40 +80,27 @@ veritabani = veritabanini_yukle()
 st.markdown(
     """
     <style>
-    /* Genel Arka Plan ve Akış */
     .stApp { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    
-    /* Mobil Üst Başlık (App Bar Görünümü) */
     .mobile-header {
         background: linear-gradient(135deg, #1e3a8a, #3b82f6);
         color: white; padding: 22px 15px; border-radius: 0 0 18px 18px;
         text-align: center; font-weight: 700; font-size: 20px; margin: -60px -20px 20px -20px;
         box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
     }
-    
-    /* İçerik Kartları */
     .card-box {
         background-color: #ffffff; padding: 18px; border-radius: 14px;
         box-shadow: 0 3px 10px rgba(0,0,0,0.06); margin-bottom: 15px; border-left: 6px solid #3b82f6;
     }
-    
-    /* Dokunmatik Dostu Arama Butonları */
     .call-btn-1 {
         background-color: #2563eb; color: white !important; padding: 15px; border-radius: 12px;
         text-align: center; font-weight: 600; font-size: 16px; display: block;
         text-decoration: none; margin-bottom: 12px; box-shadow: 0 3px 6px rgba(37, 99, 235, 0.3);
     }
-    .call-btn-1:active { background-color: #1d4ed8; }
-    
-    /* 112 Acil Butonu (Öne Çıkan) */
     .call-btn-112 {
         background-color: #dc2626; color: white !important; padding: 16px; border-radius: 12px;
         text-align: center; font-weight: 700; font-size: 18px; display: block;
         text-decoration: none; box-shadow: 0 4px 10px rgba(220, 38, 38, 0.4);
     }
-    .call-btn-112:active { background-color: #b91c1c; }
-    
-    /* Mobil Form Elemanları ve Boşluklar */
     .stButton button { width: 100%; border-radius: 10px; font-weight: 600; padding: 10px; }
     </style>
 """,
@@ -125,7 +112,7 @@ temel_url = "https://okul-saglik-asistani-spuk5zx9pxaeqiumqtcra9.streamlit.app"
 query_params = st.query_params
 ogrenci_id = query_params.get("id", None)
 
-# --- 1. SENARYO: QR KOD OKUTULDUĞUNDA ACİL DURUM EKRANI (MOBİL Görünüm) ---
+# --- 1. SENARYO: QR KOD OKUTULDUĞUNDA ACİL DURUM EKRANI (2. Görseliniz) ---
 if ogrenci_id and ogrenci_id in veritabani:
   aktif_ogrenci = veritabani[ogrenci_id]
 
@@ -244,28 +231,40 @@ if ogrenci_id and ogrenci_id in veritabani:
     elif girilen_veli_sifre != "":
       st.error("❌ Hatalı veli şifresi!")
 
-  # --- İDARE / REHBER ÖĞRETMEN GEÇİŞİ ---
-  with st.expander("🔐 İdare & Rehber Öğretmen Paneli Geçişi"):
-    acil_yonetici_sifre = st.text_input(
-        "Yönetici Şifresini Giriniz:",
-        type="password",
-        placeholder="Şifre...",
-        key="acil_yonetici_sifre_giris",
-    )
-    if acil_yonetici_sifre == "MAI2026":
-      st.success("✅ Şifre doğrulandı!")
-      st.markdown(
-          f"👉 Yönetim Paneline gitmek için tıklayın: **[{temel_url}]({temel_url})**"
-      )
-    elif acil_yonetici_sifre != "":
-      st.error("❌ Hatalı şifre!")
+  # --- ANA SAYFAYA / İDARE PANELİNE DÖNÜŞ ---
+  st.markdown("---")
+  if st.button("🏠 Ana Menüye / İdare Paneline Dön"):
+    st.query_params.clear()
+    st.rerun()
 
-# --- 2. SENARYO: REHBER ÖĞRETMEN YÖNETİM VE GÜNCELLEME PANELİ ---
+# --- 2. SENARYO: ANA EKRAN (1. Görseliniz + QR Seçimi Eklendi) ---
 else:
   st.markdown(
       '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE PANELİ</div>',
       unsafe_allow_html=True,
   )
+
+  # --- EKLENEN ÖZELLİK: ANA EKRANDAN HIZLI QR / ACİL DURUM GÖRÜNTÜLEME ---
+  with st.expander("📸 Öğrenci QR Kodu / Acil Durumu Görüntüle", expanded=False):
+    st.info(
+        "Karekod okutmak yerine buradan öğrenci seçerek acil durum kartını"
+        " anında görüntüleyebilirsiniz:"
+    )
+    if len(veritabani) > 0:
+      secilen_hizli_ogrenci = st.selectbox(
+          "Öğrenci Seçin:",
+          list(veritabani.keys()),
+          format_func=lambda x: (
+              f"{veritabani[x]['ad_soyad_kod']} ({x})"
+          ),
+      )
+      if st.button("🚨 Seçilen Öğrencinin Acil Ekranını Aç"):
+        st.query_params["id"] = secilen_hizli_ogrenci
+        st.rerun()
+    else:
+      st.warning("Sistemde henüz kayıtlı öğrenci bulunmuyor.")
+
+  st.markdown("---")
 
   sifre = st.text_input(
       "Yönetici Şifresini Giriniz:", type="password", placeholder="Şifre..."
