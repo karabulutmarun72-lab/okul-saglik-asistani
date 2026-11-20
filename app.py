@@ -263,10 +263,55 @@ else:
             <div id="live-qr-reader" style="width:100%; max-width:360px; margin-top:12px; border-radius:12px; overflow:hidden; background:#0f172a;"></div>
             <p id="live-qr-status" style="margin-top:10px; font-weight:600; color:#1e3a8a; font-size:13px; text-align:center; word-break:break-word;"></p>
         </div>
-        <script src="https://unpkg.com/html5-qrcode@2.3.8/min/html5-qrcode.min.js"></script>
         <script>
             let qrScannerInstance = null;
             let isScanning = false;
+            let scriptLoadPromise = null;
+
+            function tekScriptYukle(url) {{
+                return new Promise((resolve, reject) => {{
+                    const existing = document.querySelector(`script[src="${{url}}"]`);
+                    if (existing && typeof window.Html5Qrcode !== "undefined") {{
+                        resolve();
+                        return;
+                    }}
+                    const s = document.createElement("script");
+                    s.src = url;
+                    s.async = true;
+                    s.onload = () => {{
+                        if (typeof window.Html5Qrcode !== "undefined") resolve();
+                        else reject(new Error("ScriptLoadError: Html5Qrcode nesnesi olusmadi."));
+                    }};
+                    s.onerror = () => reject(new Error("NetworkError: " + url + " yuklenemedi."));
+                    document.head.appendChild(s);
+                }});
+            }}
+
+            async function kutuphaneHazirla() {{
+                if (typeof window.Html5Qrcode !== "undefined") return;
+                if (!scriptLoadPromise) {{
+                    const urls = [
+                        "https://unpkg.com/html5-qrcode@2.3.8/min/html5-qrcode.min.js",
+                        "https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"
+                    ];
+                    scriptLoadPromise = (async () => {{
+                        let lastErr = null;
+                        for (const u of urls) {{
+                            try {{
+                                await tekScriptYukle(u);
+                                return;
+                            }} catch (e) {{
+                                lastErr = e;
+                            }}
+                        }}
+                        throw lastErr || new Error("ScriptLoadError: QR kutuphanesi yuklenemedi.");
+                    }})().catch(err => {{
+                        scriptLoadPromise = null;
+                        throw err;
+                    }});
+                }}
+                await scriptLoadPromise;
+            }}
 
             function yonlendirHedefe(decodedText) {{
                 let hedef = decodedText.trim();
@@ -293,16 +338,14 @@ else:
                 }};
                 const onError = () => {{}};
 
-                // 1. Önce standart arka kamera modunu dene
                 try {{
                     await scanner.start({{ facingMode: {{ ideal: "environment" }} }}, config, onSuccess, onError);
                     return;
                 }} catch (e1) {{}}
 
-                // 2. Cihazdaki kameraları listele ve arka kamerayı seç
-                const cameras = await Html5Qrcode.getCameras();
+                const cameras = await window.Html5Qrcode.getCameras();
                 if (!cameras || cameras.length === 0) {{
-                    throw new Error("NotFoundError: Cihazda kamera bulunamadı.");
+                    throw new Error("NotFoundError: Cihazda kamera bulunamadi.");
                 }}
                 const backCam = cameras.find(c =>
                     /back|rear|environment|arka/i.test(c.label || "")
@@ -324,15 +367,16 @@ else:
                 }}
 
                 statusEl.style.color = "#1e3a8a";
-                statusEl.innerText = "⏳ Kamera izni isteniyor...";
+                statusEl.innerText = "⏳ QR tarayıcı modülü ve kamera izni hazırlanıyor...";
 
                 try {{
-                    // İzin diyaloğunu tetikle ve akışı hemen bırak
+                    await kutuphaneHazirla();
+
                     const tempStream = await navigator.mediaDevices.getUserMedia({{ video: true, audio: false }});
                     tempStream.getTracks().forEach(t => t.stop());
 
                     if (!qrScannerInstance) {{
-                        qrScannerInstance = new Html5Qrcode("live-qr-reader");
+                        qrScannerInstance = new window.Html5Qrcode("live-qr-reader");
                     }}
                     await kameraSecVeBaslat(qrScannerInstance);
                     isScanning = true;
