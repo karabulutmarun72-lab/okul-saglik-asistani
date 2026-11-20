@@ -337,8 +337,10 @@ else:
 
             async function kameraSecVeBaslat(scanner) {{
                 const config = {{ fps: 12, qrbox: {{ width: 220, height: 220 }} }};
+                let okundu = false;
                 const onSuccess = (decodedText) => {{
-                    if (isTransitioning) return;
+                    if (okundu) return;
+                    okundu = true;
                     const statusEl = document.getElementById("live-qr-status");
                     statusEl.style.color = "#16a34a";
                     statusEl.innerText = "✅ Karekod okundu! Açılıyor...";
@@ -347,7 +349,7 @@ else:
                 const onError = () => {{}};
 
                 try {{
-                    await scanner.start({{ facingMode: {{ ideal: "environment" }} }}, config, onSuccess, onError);
+                    await scanner.start({{ facingMode: "environment" }}, config, onSuccess, onError);
                     return;
                 }} catch (e1) {{}}
 
@@ -379,14 +381,10 @@ else:
                 }}
 
                 statusEl.style.color = "#1e3a8a";
-                statusEl.innerText = "⏳ QR tarayıcı modülü ve kamera izni hazırlanıyor...";
+                statusEl.innerText = "⏳ Kamera izni isteniyor, canlı görüntü açılıyor...";
 
                 try {{
                     await kutuphaneHazirla();
-
-                    const tempStream = await navigator.mediaDevices.getUserMedia({{ video: true, audio: false }});
-                    tempStream.getTracks().forEach(t => t.stop());
-                    await new Promise(r => setTimeout(r, 150));
 
                     if (qrScannerInstance) {{
                         try {{
@@ -420,8 +418,6 @@ else:
                 const openBtn = document.getElementById("open-live-cam");
                 const stopBtn = document.getElementById("stop-live-cam");
                 const statusEl = document.getElementById("live-qr-status");
-                if (isTransitioning) return;
-                isTransitioning = true;
                 try {{
                     if (qrScannerInstance && isScanning) {{
                         try {{
