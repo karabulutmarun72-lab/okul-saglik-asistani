@@ -248,8 +248,8 @@ else:
   # --- CANLI KAMERA İLE OTOMATİK QR OKUMA ---
   with st.expander("📸 Kamerayı Aç ve Otomatik QR Oku", expanded=True):
     st.markdown(
-        "**Kamerayı Aç** butonuna basın; kamera izni verildikten sonra canlı"
-        " görüntü açılır ve karekod kadraja girdiğinde otomatik okunur."
+        "**Kamerayı Aç** butonuna basın; izin verildikten sonra canlı kamera"
+        " görüntüsü açılır ve karekod kadraja girdiğinde otomatik okunur."
     )
 
     live_qr_html = f"""
@@ -260,8 +260,8 @@ else:
             <button id="stop-live-cam" type="button" onclick="stopLiveScanner()" style="display:none; background-color:#64748b; color:#ffffff; border:none; padding:10px 16px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; width:100%; margin-top:8px;">
                 ⏹️ Kamerayı Kapat
             </button>
-            <div id="live-qr-reader" style="width:100%; max-width:360px; margin-top:12px; border-radius:12px; overflow:hidden;"></div>
-            <p id="live-qr-status" style="margin-top:10px; font-weight:600; color:#1e3a8a; font-size:14px; text-align:center;"></p>
+            <div id="live-qr-reader" style="width:100%; max-width:360px; margin-top:12px; border-radius:12px; overflow:hidden; background:#0f172a;"></div>
+            <p id="live-qr-status" style="margin-top:10px; font-weight:600; color:#1e3a8a; font-size:13px; text-align:center; word-break:break-word;"></p>
         </div>
         <script src="https://unpkg.com/html5-qrcode@2.3.8/min/html5-qrcode.min.js"></script>
         <script>
@@ -270,11 +270,44 @@ else:
 
             function yonlendirHedefe(decodedText) {{
                 let hedef = decodedText.trim();
-                if (hedef.startsWith("http://") || hedef.startsWith("https://")) {{
-                    window.top.location.href = hedef;
-                }} else {{
-                    window.top.location.href = "{temel_url}/?id=" + encodeURIComponent(hedef);
+                let url = hedef;
+                if (!(hedef.startsWith("http://") || hedef.startsWith("https://"))) {{
+                    url = "{temel_url}/?id=" + encodeURIComponent(hedef);
                 }}
+                try {{
+                    if (window.top && window.top.location) {{
+                        window.top.location.href = url;
+                        return;
+                    }}
+                }} catch (e) {{}}
+                window.location.href = url;
+            }}
+
+            async function kameraSecVeBaslat(scanner) {{
+                const config = {{ fps: 12, qrbox: {{ width: 220, height: 220 }} }};
+                const onSuccess = (decodedText) => {{
+                    const statusEl = document.getElementById("live-qr-status");
+                    statusEl.style.color = "#16a34a";
+                    statusEl.innerText = "✅ Karekod okundu! Açılıyor...";
+                    stopLiveScanner().finally(() => yonlendirHedefe(decodedText));
+                }};
+                const onError = () => {{}};
+
+                // 1. Önce standart arka kamera modunu dene
+                try {{
+                    await scanner.start({{ facingMode: {{ ideal: "environment" }} }}, config, onSuccess, onError);
+                    return;
+                }} catch (e1) {{}}
+
+                // 2. Cihazdaki kameraları listele ve arka kamerayı seç
+                const cameras = await Html5Qrcode.getCameras();
+                if (!cameras || cameras.length === 0) {{
+                    throw new Error("NotFoundError: Cihazda kamera bulunamadı.");
+                }}
+                const backCam = cameras.find(c =>
+                    /back|rear|environment|arka/i.test(c.label || "")
+                ) || cameras[cameras.length - 1];
+                await scanner.start(backCam.id, config, onSuccess, onError);
             }}
 
             async function startLiveScanner() {{
@@ -286,35 +319,32 @@ else:
 
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {{
                     statusEl.style.color = "#dc2626";
-                    statusEl.innerText = "⚠️ Bu ortamda canlı kamera API'si desteklenmiyor veya izin engelli.";
+                    statusEl.innerText = "❌ Bu WebView/tarayıcıda getUserMedia desteklenmiyor.";
                     return;
                 }}
 
                 statusEl.style.color = "#1e3a8a";
-                statusEl.innerText = "⏳ Kamera izni isteniyor, canlı görüntü açılıyor...";
+                statusEl.innerText = "⏳ Kamera izni isteniyor...";
 
                 try {{
+                    // İzin diyaloğunu tetikle ve akışı hemen bırak
+                    const tempStream = await navigator.mediaDevices.getUserMedia({{ video: true, audio: false }});
+                    tempStream.getTracks().forEach(t => t.stop());
+
                     if (!qrScannerInstance) {{
                         qrScannerInstance = new Html5Qrcode("live-qr-reader");
                     }}
-                    await qrScannerInstance.start(
-                        {{ facingMode: "environment" }},
-                        {{ fps: 12, qrbox: {{ width: 220, height: 220 }} }},
-                        (decodedText) => {{
-                            statusEl.style.color = "#16a34a";
-                            statusEl.innerText = "✅ Karekod otomatik okundu! Açılıyor...";
-                            stopLiveScanner().finally(() => yonlendirHedefe(decodedText));
-                        }},
-                        () => {{}}
-                    );
+                    await kameraSecVeBaslat(qrScannerInstance);
                     isScanning = true;
                     openBtn.style.display = "none";
                     stopBtn.style.display = "block";
                     statusEl.style.color = "#16a34a";
-                    statusEl.innerText = "📷 Canlı kamera aktif — karekodu kadraja tutun.";
+                    statusEl.innerText = "📷 Canlı kamera açık — karekodu kadraja tutun.";
                 }} catch (err) {{
+                    const errName = err && err.name ? err.name : "";
+                    const errMsg = err && err.message ? err.message : String(err);
                     statusEl.style.color = "#dc2626";
-                    statusEl.innerText = "❌ Kamera açılamadı. Uygulama/tarayıcı kamera iznini kontrol edin.";
+                    statusEl.innerText = "❌ Kamera açılamadı (" + (errName || "Hata") + "): " + errMsg;
                 }}
             }}
 
@@ -335,7 +365,7 @@ else:
             }}
         </script>
         """
-    components.html(live_qr_html, height=430)
+    components.html(live_qr_html, height=450)
 
     # Manuel ID Girişi (Kamera erişimi kısıtlı durumlar için yedek)
     with st.form("hizli_id_form"):
