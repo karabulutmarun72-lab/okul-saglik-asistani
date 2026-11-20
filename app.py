@@ -260,12 +260,13 @@ else:
             <button id="stop-live-cam" type="button" onclick="stopLiveScanner()" style="display:none; background-color:#64748b; color:#ffffff; border:none; padding:10px 16px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; width:100%; margin-top:8px;">
                 ⏹️ Kamerayı Kapat
             </button>
-            <div id="live-qr-reader" style="width:100%; max-width:360px; margin-top:12px; border-radius:12px; overflow:hidden; background:#0f172a;"></div>
+            <div id="live-qr-host" style="width:100%; max-width:360px; margin-top:12px; border-radius:12px; overflow:hidden; background:#0f172a;"></div>
             <p id="live-qr-status" style="margin-top:10px; font-weight:600; color:#1e3a8a; font-size:13px; text-align:center; word-break:break-word;"></p>
         </div>
         <script>
             let qrScannerInstance = null;
             let isScanning = false;
+            let isTransitioning = false;
             let scriptLoadPromise = null;
 
             function tekScriptYukle(url) {{
@@ -328,9 +329,16 @@ else:
                 window.location.href = url;
             }}
 
+            function yeniTarayiciKapsayiciOlustur() {{
+                const host = document.getElementById("live-qr-host");
+                host.innerHTML = '<div id="live-qr-reader" style="width:100%;"></div>';
+                return new window.Html5Qrcode("live-qr-reader", {{ verbose: false }});
+            }}
+
             async function kameraSecVeBaslat(scanner) {{
                 const config = {{ fps: 12, qrbox: {{ width: 220, height: 220 }} }};
                 const onSuccess = (decodedText) => {{
+                    if (isTransitioning) return;
                     const statusEl = document.getElementById("live-qr-status");
                     statusEl.style.color = "#16a34a";
                     statusEl.innerText = "✅ Karekod okundu! Açılıyor...";
@@ -358,11 +366,15 @@ else:
                 const openBtn = document.getElementById("open-live-cam");
                 const stopBtn = document.getElementById("stop-live-cam");
 
-                if (isScanning) return;
+                if (isScanning || isTransitioning) return;
+                isTransitioning = true;
+                openBtn.disabled = true;
 
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {{
                     statusEl.style.color = "#dc2626";
                     statusEl.innerText = "❌ Bu WebView/tarayıcıda getUserMedia desteklenmiyor.";
+                    isTransitioning = false;
+                    openBtn.disabled = false;
                     return;
                 }}
 
@@ -374,10 +386,17 @@ else:
 
                     const tempStream = await navigator.mediaDevices.getUserMedia({{ video: true, audio: false }});
                     tempStream.getTracks().forEach(t => t.stop());
+                    await new Promise(r => setTimeout(r, 150));
 
-                    if (!qrScannerInstance) {{
-                        qrScannerInstance = new window.Html5Qrcode("live-qr-reader");
+                    if (qrScannerInstance) {{
+                        try {{
+                            await qrScannerInstance.stop();
+                            await qrScannerInstance.clear();
+                        }} catch (e) {{}}
+                        qrScannerInstance = null;
                     }}
+
+                    qrScannerInstance = yeniTarayiciKapsayiciOlustur();
                     await kameraSecVeBaslat(qrScannerInstance);
                     isScanning = true;
                     openBtn.style.display = "none";
@@ -389,6 +408,11 @@ else:
                     const errMsg = err && err.message ? err.message : String(err);
                     statusEl.style.color = "#dc2626";
                     statusEl.innerText = "❌ Kamera açılamadı (" + (errName || "Hata") + "): " + errMsg;
+                    openBtn.style.display = "block";
+                    stopBtn.style.display = "none";
+                }} finally {{
+                    isTransitioning = false;
+                    openBtn.disabled = false;
                 }}
             }}
 
@@ -396,16 +420,26 @@ else:
                 const openBtn = document.getElementById("open-live-cam");
                 const stopBtn = document.getElementById("stop-live-cam");
                 const statusEl = document.getElementById("live-qr-status");
-                if (qrScannerInstance && isScanning) {{
-                    try {{
-                        await qrScannerInstance.stop();
-                        await qrScannerInstance.clear();
-                    }} catch (e) {{}}
+                if (isTransitioning) return;
+                isTransitioning = true;
+                try {{
+                    if (qrScannerInstance && isScanning) {{
+                        try {{
+                            await qrScannerInstance.stop();
+                        }} catch (e) {{}}
+                        try {{
+                            await qrScannerInstance.clear();
+                        }} catch (e) {{}}
+                    }}
+                    qrScannerInstance = null;
+                    document.getElementById("live-qr-host").innerHTML = "";
+                }} finally {{
+                    isScanning = false;
+                    isTransitioning = false;
+                    openBtn.style.display = "block";
+                    stopBtn.style.display = "none";
+                    if (statusEl) statusEl.innerText = "";
                 }}
-                isScanning = false;
-                openBtn.style.display = "block";
-                stopBtn.style.display = "none";
-                if (statusEl) statusEl.innerText = "";
             }}
         </script>
         """
