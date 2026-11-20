@@ -1,3 +1,4 @@
+from urllib.parse import parse_qs, urlparse
 import io
 import json
 import os
@@ -75,6 +76,18 @@ def qr_kod_uret(veri_metni):
   return buf.getvalue()
 
 
+def ogrenci_kaydi_bul(ham_id, db):
+  if not ham_id:
+    return None, None
+  temiz = str(ham_id).strip()
+  if temiz in db:
+    return temiz, db[temiz]
+  for anahtar, deger in db.items():
+    if anahtar.strip().lower() == temiz.lower():
+      return anahtar, deger
+  return temiz, None
+
+
 veritabani = veritabanini_yukle()
 
 # --- MOBİL APK UYUMLU ÖZEL CSS TASARIMI ---
@@ -111,12 +124,11 @@ st.markdown(
 temel_url = "https://okul-saglik-asistani-spuk5zx9pxaeqiumqtcra9.streamlit.app"
 
 query_params = st.query_params
-ogrenci_id = query_params.get("id", None)
+raw_ogrenci_id = query_params.get("id", None)
+ogrenci_id, aktif_ogrenci = ogrenci_kaydi_bul(raw_ogrenci_id, veritabani)
 
 # --- 1. SENARYO: QR KOD OKUTULDUĞUNDA ACİL DURUM EKRANI ---
-if ogrenci_id and ogrenci_id in veritabani:
-  aktif_ogrenci = veritabani[ogrenci_id]
-
+if ogrenci_id and aktif_ogrenci:
   st.markdown(
       '<div class="mobile-header">🚨 ACİL SAĞLIK & İLK MÜDAHALE</div>',
       unsafe_allow_html=True,
@@ -245,6 +257,13 @@ else:
       unsafe_allow_html=True,
   )
 
+  if ogrenci_id and not aktif_ogrenci:
+    st.warning(
+        f"⚠️ Karekoddan **{ogrenci_id}** ID'si algılandı ancak sistemdeki"
+        " kayıtlarda bulunamadı. Yönetici panelinden kayıtlı ID'yi kontrol"
+        " edin."
+    )
+
   # --- CANLI KAMERA İLE OTOMATİK QR OKUMA ---
   with st.expander("📸 Kamerayı Aç ve Otomatik QR Oku", expanded=True):
     st.markdown(
@@ -314,12 +333,26 @@ else:
                 await scriptLoadPromise;
             }}
 
-            function yonlendirHedefe(decodedText) {{
-                let hedef = decodedText.trim();
-                let url = hedef;
-                if (!(hedef.startsWith("http://") || hedef.startsWith("https://"))) {{
-                    url = "{temel_url}/?id=" + encodeURIComponent(hedef);
+            function idAyikla(decodedText) {{
+                const metin = (decodedText || "").trim();
+                if (!metin) return "";
+                try {{
+                    if (metin.startsWith("http://") || metin.startsWith("https://")) {{
+                        const parsed = new URL(metin);
+                        const qId = parsed.searchParams.get("id");
+                        if (qId) return qId.trim();
+                    }}
+                }} catch (e) {{}}
+                const match = metin.match(/[?&]id=([^&]+)/i);
+                if (match && match[1]) {{
+                    return decodeURIComponent(match[1]).trim();
                 }}
+                return metin;
+            }}
+
+            function yonlendirHedefe(decodedText) {{
+                const ogrenciParam = idAyikla(decodedText);
+                const url = "{temel_url}/?id=" + encodeURIComponent(ogrenciParam);
                 try {{
                     if (window.top && window.top.location) {{
                         window.top.location.href = url;
@@ -343,7 +376,7 @@ else:
                     okundu = true;
                     const statusEl = document.getElementById("live-qr-status");
                     statusEl.style.color = "#16a34a";
-                    statusEl.innerText = "✅ Karekod okundu! Açılıyor...";
+                    statusEl.innerText = "✅ Karekod okundu! Öğrenci kartı açılıyor...";
                     stopLiveScanner().finally(() => yonlendirHedefe(decodedText));
                 }};
                 const onError = () => {{}};
@@ -451,11 +484,11 @@ else:
       form_buton = st.form_submit_button("Acil Durum Ekranını Aç")
 
       if form_buton:
-        temiz_id = girilen_id.strip()
-        if temiz_id in veritabani:
-          st.query_params["id"] = temiz_id
+        bulunan_id, bulunan_kayit = ogrenci_kaydi_bul(girilen_id, veritabani)
+        if bulunan_id and bulunan_kayit:
+          st.query_params["id"] = bulunan_id
           st.rerun()
-        else:
+        elif girilen_id.strip() != "":
           st.error(
               "❌ Bu ID koduna ait sistemde kayıtlı öğrenci bulunamadı!"
           )
