@@ -238,55 +238,110 @@ if ogrenci_id and ogrenci_id in veritabani:
     st.query_params.clear()
     st.rerun()
 
-# --- 2. SENARYO: ANA EKRAN (Kamerayı Aç / QR Oku & İdare Paneli) ---
+# --- 2. SENARYO: ANA EKRAN (Canlı Kamera ile Otomatik QR Okuma & İdare Paneli) ---
 else:
   st.markdown(
       '<div class="mobile-header">🔐 REHBER ÖĞRETMEN & İDARE PANELİ</div>',
       unsafe_allow_html=True,
   )
 
-  # --- KAMERA İLE KAREKOD OKUTMA BÖLÜMÜ ---
-  with st.expander("📸 Kamerayı Aç ve Karekod (QR) Tara", expanded=True):
+  # --- CANLI KAMERA İLE OTOMATİK QR OKUMA ---
+  with st.expander("📸 Kamerayı Aç ve Otomatik QR Oku", expanded=True):
     st.markdown(
-        "Telefonunuzun kamerasını açarak öğrencinin yaka kartındaki karekodu"
-        " taratın:"
+        "**Kamerayı Aç** butonuna basın; kamera izni verildikten sonra canlı"
+        " görüntü açılır ve karekod kadraja girdiğinde otomatik okunur."
     )
 
-    # HTML5 Yerli Kamera / Dosya yakalayıcı ve QR kod çözücü bileşeni
-    cam_scanner_html = """
-        <div style="display: flex; justify-content: center; align-items: center; flex-direction: column; background: #eff6ff; padding: 18px; border-radius: 12px; border: 2px dashed #3b82f6;">
-            <p style="color: #1e3a8a; font-weight: bold; margin-bottom: 12px; font-size: 15px; text-align: center;">📱 Hızlı Kamera ile QR Okut</p>
-            <input type="file" accept="image/*" capture="environment" id="qr-input-file" style="display:none;" onchange="handleQRScan(event)">
-            <button onclick="document.getElementById('qr-input-file').click()" style="background-color: #2563eb; color: white; border: none; padding: 15px 22px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; box-shadow: 0 4px 6px rgba(37,99,235,0.3);">📸 Kamerayı Aç / Fotoğraf Çek</button>
-            <p id="scan-status" style="margin-top: 12px; font-weight: bold; color: #16a34a; font-size: 14px; text-align: center;"></p>
+    live_qr_html = f"""
+        <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+            <button id="open-live-cam" type="button" onclick="startLiveScanner()" style="background-color:#2563eb; color:#ffffff; border:none; padding:14px 20px; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; width:100%; box-shadow:0 4px 10px rgba(37,99,235,0.3);">
+                📷 Kamerayı Aç
+            </button>
+            <button id="stop-live-cam" type="button" onclick="stopLiveScanner()" style="display:none; background-color:#64748b; color:#ffffff; border:none; padding:10px 16px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; width:100%; margin-top:8px;">
+                ⏹️ Kamerayı Kapat
+            </button>
+            <div id="live-qr-reader" style="width:100%; max-width:360px; margin-top:12px; border-radius:12px; overflow:hidden;"></div>
+            <p id="live-qr-status" style="margin-top:10px; font-weight:600; color:#1e3a8a; font-size:14px; text-align:center;"></p>
         </div>
         <script src="https://unpkg.com/html5-qrcode@2.3.8/min/html5-qrcode.min.js"></script>
         <script>
-        function handleQRScan(e) {
-            if (e.target.files.length === 0) return;
-            const file = e.target.files[0];
-            document.getElementById('scan-status').innerText = "⏳ QR kod okunuyor...";
-            
-            Html5Qrcode.scanFile(file, true)
-            .then(decodedText => {
-                document.getElementById('scan-status').innerText = "✅ Başarılı! Yönlendiriliyor...";
-                window.top.location.href = decodedText;
-            })
-            .catch(err => {
-                document.getElementById('scan-status').innerText = "❌ Karekod okunamadı. Lütfen ışığı ayarlayıp tekrar deneyin.";
-            });
-        }
+            let qrScannerInstance = null;
+            let isScanning = false;
+
+            function yonlendirHedefe(decodedText) {{
+                let hedef = decodedText.trim();
+                if (hedef.startsWith("http://") || hedef.startsWith("https://")) {{
+                    window.top.location.href = hedef;
+                }} else {{
+                    window.top.location.href = "{temel_url}/?id=" + encodeURIComponent(hedef);
+                }}
+            }}
+
+            async function startLiveScanner() {{
+                const statusEl = document.getElementById("live-qr-status");
+                const openBtn = document.getElementById("open-live-cam");
+                const stopBtn = document.getElementById("stop-live-cam");
+
+                if (isScanning) return;
+
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {{
+                    statusEl.style.color = "#dc2626";
+                    statusEl.innerText = "⚠️ Bu ortamda canlı kamera API'si desteklenmiyor veya izin engelli.";
+                    return;
+                }}
+
+                statusEl.style.color = "#1e3a8a";
+                statusEl.innerText = "⏳ Kamera izni isteniyor, canlı görüntü açılıyor...";
+
+                try {{
+                    if (!qrScannerInstance) {{
+                        qrScannerInstance = new Html5Qrcode("live-qr-reader");
+                    }}
+                    await qrScannerInstance.start(
+                        {{ facingMode: "environment" }},
+                        {{ fps: 12, qrbox: {{ width: 220, height: 220 }} }},
+                        (decodedText) => {{
+                            statusEl.style.color = "#16a34a";
+                            statusEl.innerText = "✅ Karekod otomatik okundu! Açılıyor...";
+                            stopLiveScanner().finally(() => yonlendirHedefe(decodedText));
+                        }},
+                        () => {{}}
+                    );
+                    isScanning = true;
+                    openBtn.style.display = "none";
+                    stopBtn.style.display = "block";
+                    statusEl.style.color = "#16a34a";
+                    statusEl.innerText = "📷 Canlı kamera aktif — karekodu kadraja tutun.";
+                }} catch (err) {{
+                    statusEl.style.color = "#dc2626";
+                    statusEl.innerText = "❌ Kamera açılamadı. Uygulama/tarayıcı kamera iznini kontrol edin.";
+                }}
+            }}
+
+            async function stopLiveScanner() {{
+                const openBtn = document.getElementById("open-live-cam");
+                const stopBtn = document.getElementById("stop-live-cam");
+                const statusEl = document.getElementById("live-qr-status");
+                if (qrScannerInstance && isScanning) {{
+                    try {{
+                        await qrScannerInstance.stop();
+                        await qrScannerInstance.clear();
+                    }} catch (e) {{}}
+                }}
+                isScanning = false;
+                openBtn.style.display = "block";
+                stopBtn.style.display = "none";
+                if (statusEl) statusEl.innerText = "";
+            }}
         </script>
         """
-    components.html(cam_scanner_html, height=210)
+    components.html(live_qr_html, height=430)
 
-    st.markdown("---")
-
-    # Manuel ID Girişi (Yedek Güvenli Yöntem)
+    # Manuel ID Girişi (Kamera erişimi kısıtlı durumlar için yedek)
     with st.form("hizli_id_form"):
       st.markdown(
-          "Veya yaka kartında yazan **Karekod ID Kodunu** (Örn: `MAI-5A-14`)"
-          " elle girin:"
+          "Kamera erişilemezse karekod ID kodunu (Örn: `MAI-5A-14`) elle"
+          " girebilirsiniz:"
       )
       girilen_id = st.text_input("Öğrenci Karekod ID Kodu:", placeholder="MAI-...")
       form_buton = st.form_submit_button("Acil Durum Ekranını Aç")
